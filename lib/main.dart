@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:developer';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(const MyApp());
@@ -20,6 +21,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
+      darkTheme: ThemeData.dark(),
+      themeMode: ThemeMode.system,
       home: const MyHomePage(),
     );
   }
@@ -33,18 +36,20 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  static const platform = MethodChannel('com.example.pace_alert/service');
+
   List<dynamic> _data = [];
   Timer? _timer;
   FlutterLocalNotificationsPlugin? flutterLocalNotificationsPlugin;
-  bool isAlarmActive = false;
+  bool isAlertActive = false;
   Map<String, Set<String>> notifiedEventIds = {};
+  Set<int> sentNotificationIds = {};
 
   @override
   void initState() {
     super.initState();
     initializeNotifications();
     fetchData();
-
     _timer = Timer.periodic(const Duration(seconds: 20), (timer) {
       fetchData();
     });
@@ -58,8 +63,48 @@ class _MyHomePageState extends State<MyHomePage> {
     const InitializationSettings initializationSettings =
         InitializationSettings(android: initializationSettingsAndroid);
 
-    await flutterLocalNotificationsPlugin!.initialize(initializationSettings);
+    await flutterLocalNotificationsPlugin!.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse:
+          (NotificationResponse notificationResponse) {
+        onNotificationTapped(notificationResponse.payload);
+        if (notificationResponse.payload != null) {
+          onSelectNotification(notificationResponse.payload);
+        }
+      },
+    );
+
     log('Notifications initialized.');
+    startForegroundService();
+  }
+
+  Future<void> startForegroundService() async {
+    try {
+      await platform.invokeMethod('startService');
+
+      const AndroidNotificationDetails androidPlatformChannelSpecifics =
+          AndroidNotificationDetails(
+        'foreground_service_channel',
+        'Foreground Service',
+        channelDescription: 'Foreground service running',
+        importance: Importance.low,
+        priority: Priority.low,
+        showWhen: false,
+        ongoing: true,
+      );
+
+      const NotificationDetails platformChannelSpecifics =
+          NotificationDetails(android: androidPlatformChannelSpecifics);
+
+      await flutterLocalNotificationsPlugin!.show(
+        1,
+        'PaceAlert Running in Background',
+        'waiting wr pace...',
+        platformChannelSpecifics,
+      );
+    } on PlatformException catch (e) {
+      log('Failed to start service: ${e.message}');
+    }
   }
 
   Future<void> fetchData() async {
@@ -97,9 +142,9 @@ class _MyHomePageState extends State<MyHomePage> {
     'rsg.enter_bastion': 0,
     'rsg.enter_fortress': 0,
     'rsg.first_portal': 0,
-    'rsg.enter_stronghold': 300000, // sub 5
-    'rsg.enter_end': 371000, // sub 6:11
-    'rsg.credits': 421494, // sub 7:01.494
+    'rsg.enter_stronghold': 300000,
+    'rsg.enter_end': 371000,
+    'rsg.credits': 421494,
   };
 
   void checkForNewEvents() {
@@ -127,8 +172,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
             if (!notifiedEventIds[nickname]!.contains(eventId)) {
               String formattedTime = formatTime(igt);
-
               String eventMessage;
+              String? liveAccount = item['user']['liveAccount'];
+
               switch (eventId) {
                 case 'rsg.enter_nether':
                   eventMessage = 'Enter Nether';
@@ -136,14 +182,30 @@ class _MyHomePageState extends State<MyHomePage> {
                 case 'rsg.enter_bastion':
                   eventMessage = 'Enter Bastion';
                   break;
+                case 'rsg.enter_fortress':
+                  eventMessage = 'Enter Fortress';
+                  break;
+                case 'rsg.first_portal':
+                  eventMessage = 'First Portal';
+                  break;
+                case 'rsg.enter_stronghold':
+                  eventMessage = 'Enter Stronghold';
+                  break;
+                case 'rsg.enter_end':
+                  eventMessage = 'Enter End';
+                  break;
+                case 'rsg.credits':
+                  eventMessage = 'Finish';
+                  break;
                 default:
                   eventMessage = eventId;
                   break;
               }
 
-              showNotification('$nickname: $eventMessage ($formattedTime)');
+              showNotification(
+                  '$nickname: $eventMessage ($formattedTime)', liveAccount);
               notifiedEventIds[nickname]!.add(eventId);
-              log('Notification sent for nickname: $nickname with eventId: $eventId ($formattedTime)');
+              log('Notification sent: $nickname with eventId: $eventId ($formattedTime)');
             }
           }
         }
@@ -156,7 +218,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   String formatTime(int time) {
     int seconds = time ~/ 1000;
-    // int milliseconds = time % 1000;
 
     int minutes = seconds ~/ 60;
     int remainingSeconds = seconds % 60;
@@ -164,11 +225,11 @@ class _MyHomePageState extends State<MyHomePage> {
     return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
-  Future<void> showNotification(String message) async {
+  Future<void> showNotification(String message, String? liveAccount) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'your_channel_id',
-      'your_channel_name',
+      'notification_channel',
+      'Notification',
       channelDescription: 'notify',
       importance: Importance.high,
       priority: Priority.high,
@@ -176,19 +237,46 @@ class _MyHomePageState extends State<MyHomePage> {
       sound: RawResourceAndroidNotificationSound('notification'),
     );
 
-    const NotificationDetails platformChannelChannelSpecifics =
+    const NotificationDetails platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);
 
-    await flutterLocalNotificationsPlugin!
-        .show(0, 'Pace Alert!', message, platformChannelChannelSpecifics);
+    int notificationId =
+        DateTime.now().millisecondsSinceEpoch.remainder(100000);
 
-    isAlarmActive = true;
+    if (!sentNotificationIds.contains(notificationId)) {
+      await flutterLocalNotificationsPlugin!.show(
+        notificationId,
+        'Pace Alert!',
+        message,
+        platformChannelSpecifics,
+        payload: liveAccount,
+      );
+
+      sentNotificationIds.add(notificationId);
+      isAlertActive = true;
+    }
   }
 
-  Future<void> stopAlarm() async {
-    isAlarmActive = false;
-    log('Alarm stopped.');
+  void onNotificationTapped(String? payload) {
+    String url = 'https://www.twitch.tv/';
 
+    if (payload != null && payload.isNotEmpty) {
+      launchUrl(Uri.parse(url + payload));
+    } else {
+      log('No event ID to launch.');
+    }
+
+    stopAlert();
+  }
+
+  Future<void> onSelectNotification(String? payload) async {}
+
+  Future<void> stopAlert() async {
+    isAlertActive = false;
+    log('Alert stopped. $isAlertActive');
+    setState(() {});
+
+    await flutterLocalNotificationsPlugin?.cancelAll();
     await flutterLocalNotificationsPlugin?.cancel(0);
   }
 
@@ -208,6 +296,24 @@ class _MyHomePageState extends State<MyHomePage> {
     'rsg.credits': 7,
   };
 
+  List<String> getSortedEvents() {
+    List<String> sortedEvents = [];
+    for (var item in _data) {
+      var eventList = item['eventList'];
+      if (eventList != null) {
+        for (var event in eventList) {
+          String eventId = event['eventId'];
+          if (eventPriority.containsKey(eventId)) {
+            sortedEvents.add(eventId);
+          }
+        }
+      }
+    }
+
+    sortedEvents.sort((a, b) => eventPriority[a]!.compareTo(eventPriority[b]!));
+    return sortedEvents;
+  }
+
   List<String> getEventDisplayText(String eventId) {
     switch (eventId) {
       case 'rsg.enter_end':
@@ -223,9 +329,9 @@ class _MyHomePageState extends State<MyHomePage> {
       case 'rsg.enter_nether':
         return ['Enter Nether', 'assets/icons/nether.png'];
       case 'rsg.credits':
-        return ['Finish', 'assets/icons/credits.png'];
+        return ['Credits', 'assets/icons/credits.png'];
       default:
-        return ['Unknown', 'assets/icons/paceman.png'];
+        return ['Unknown Event', 'assets/icons/default.png'];
     }
   }
 
@@ -238,16 +344,6 @@ class _MyHomePageState extends State<MyHomePage> {
     'rsg.enter_nether': 'Enter Nether',
     'rsg.credits': 'Finish',
   };
-
-  void onNotificationTapped(String? eventId) {
-    String url = 'https://www.twitch.tv/';
-
-    if (eventId != null) {
-      launchUrl(Uri.parse(url));
-    } else {
-      log('No event ID to launch.');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -268,9 +364,9 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Column(
         children: <Widget>[
           Expanded(
-            child: _data.isEmpty // JSONが空かどうかをチェック
+            child: _data.isEmpty
                 ? const Center(
-                    child: Text('No one is currently on pace...'), // 空の場合はここを表示
+                    child: Text('No one is currently on pace...'),
                   )
                 : ListView.builder(
                     itemCount: _data.length,
@@ -355,15 +451,15 @@ class _MyHomePageState extends State<MyHomePage> {
                     },
                   ),
           ),
-          if (isAlarmActive) ...[
+          if (isAlertActive) ...[
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: ElevatedButton(
                 onPressed: () {
-                  stopAlarm();
+                  stopAlert();
                   setState(() {});
                 },
-                child: const Text('Stop Alarm'),
+                child: const Text('Stop Alert'),
               ),
             ),
           ],
