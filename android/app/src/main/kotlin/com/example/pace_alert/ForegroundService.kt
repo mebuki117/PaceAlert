@@ -22,6 +22,7 @@ import java.io.IOException
 class ForegroundService : Service() {
     private val channelId = "ForegroundServiceChannel"
     private val notificationId = 1
+    private val sentNotificationIds = mutableSetOf<Int>()
     private val client = OkHttpClient()
     private var job: Job? = null
 
@@ -40,13 +41,12 @@ class ForegroundService : Service() {
         "rsg.enter_bastion" to 0,
         "rsg.enter_fortress" to 0,
         "rsg.first_portal" to 0,
-        "rsg.enter_stronghold" to 300000,
-        "rsg.enter_end" to 371000,
-        "rsg.credits" to 421494
+        "rsg.enter_stronghold" to 300000, // 300000
+        "rsg.enter_end" to 371000, // 371000
+        "rsg.credits" to 421494 // 421494
     )
 
     private val notifiedEventIds = mutableMapOf<String, MutableSet<String>>()
-    private var sentNotificationIds = mutableSetOf<Int>()
 
     override fun onCreate() {
         super.onCreate()
@@ -146,13 +146,14 @@ class ForegroundService : Service() {
     }
 
     private fun showNotification(message: String, liveAccount: String?) {
-        val notification = getNotification("Pace Alert!", message)
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val notificationId = System.currentTimeMillis().toInt()
+        val notification = getNotification("Pace Alert!", message)
 
-        if (!sentNotificationIds.contains(notificationId)) {
-            notificationManager.notify(notificationId, notification)
-            sentNotificationIds.add(notificationId)
+        val uniqueNotificationId = message.hashCode()
+
+        if (!sentNotificationIds.contains(uniqueNotificationId)) {
+            notificationManager.notify(uniqueNotificationId, notification)
+            sentNotificationIds.add(uniqueNotificationId)
         }
     }
 
@@ -170,40 +171,31 @@ class ForegroundService : Service() {
             pendingIntentFlags
         )
 
-        val soundUri = Uri.parse("android.resource://${packageName}/${R.raw.notification}")
+        val soundUri = Uri.parse("android.resource://${packageName}/raw/notification")
 
-        val notificationBuilder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, channelId)
-        } else {
-            Notification.Builder(this)
-                .setSound(soundUri)
-        }
-
-        return notificationBuilder
+        return Notification.Builder(this, channelId)
             .setContentTitle(title)
             .setContentText(message)
             .setSmallIcon(R.mipmap.paceman)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
+            .setSound(soundUri)
             .build()
     }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val soundUri = Uri.parse("android.resource://${packageName}/${R.raw.notification}")
-            val audioAttributes = AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build()
-
+            val soundUri = Uri.parse("android.resource://${packageName}/raw/notification")
+        
             val serviceChannel = NotificationChannel(
                 channelId,
                 "Foreground Service Channel",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                setSound(soundUri, audioAttributes)
-                enableLights(true)
-                enableVibration(true)
+                setSound(soundUri, AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build())
             }
 
             val manager = getSystemService(NotificationManager::class.java)

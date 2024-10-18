@@ -67,10 +67,7 @@ class _MyHomePageState extends State<MyHomePage> {
       initializationSettings,
       onDidReceiveNotificationResponse:
           (NotificationResponse notificationResponse) {
-        onNotificationTapped(notificationResponse.payload);
-        if (notificationResponse.payload != null) {
-          onSelectNotification(notificationResponse.payload);
-        }
+        stopAlert();
       },
     );
 
@@ -117,8 +114,6 @@ class _MyHomePageState extends State<MyHomePage> {
           _data = json.decode(response.body);
         });
         log('Data fetched successfully: ${_data.length} items.');
-
-        checkForNewEvents();
       } else {
         throw Exception('Failed to load data');
       }
@@ -147,75 +142,6 @@ class _MyHomePageState extends State<MyHomePage> {
     'rsg.credits': 421494,
   };
 
-  void checkForNewEvents() {
-    Set<String> currentNicknames = {};
-
-    for (var item in _data) {
-      var eventList = item['eventList'];
-      String nickname = item['nickname'];
-
-      currentNicknames.add(nickname);
-
-      if (eventList != null) {
-        for (int eventIndex = 0; eventIndex < eventList.length; eventIndex++) {
-          String eventId = eventList[eventIndex]['eventId'];
-          int igt = eventList[eventIndex]['igt'];
-
-          int? threshold = eventIdThresholds[eventId];
-
-          if (eventIdsToNotify.contains(eventId) &&
-              threshold != null &&
-              igt < threshold) {
-            if (!notifiedEventIds.containsKey(nickname)) {
-              notifiedEventIds[nickname] = {};
-            }
-
-            if (!notifiedEventIds[nickname]!.contains(eventId)) {
-              String formattedTime = formatTime(igt);
-              String eventMessage;
-              String? liveAccount = item['user']['liveAccount'];
-
-              switch (eventId) {
-                case 'rsg.enter_nether':
-                  eventMessage = 'Enter Nether';
-                  break;
-                case 'rsg.enter_bastion':
-                  eventMessage = 'Enter Bastion';
-                  break;
-                case 'rsg.enter_fortress':
-                  eventMessage = 'Enter Fortress';
-                  break;
-                case 'rsg.first_portal':
-                  eventMessage = 'First Portal';
-                  break;
-                case 'rsg.enter_stronghold':
-                  eventMessage = 'Enter Stronghold';
-                  break;
-                case 'rsg.enter_end':
-                  eventMessage = 'Enter End';
-                  break;
-                case 'rsg.credits':
-                  eventMessage = 'Finish';
-                  break;
-                default:
-                  eventMessage = eventId;
-                  break;
-              }
-
-              showNotification(
-                  '$nickname: $eventMessage ($formattedTime)', liveAccount);
-              notifiedEventIds[nickname]!.add(eventId);
-              log('Notification sent: $nickname with eventId: $eventId ($formattedTime)');
-            }
-          }
-        }
-      }
-    }
-
-    notifiedEventIds.removeWhere(
-        (notifiedNickname, _) => !currentNicknames.contains(notifiedNickname));
-  }
-
   String formatTime(int time) {
     int seconds = time ~/ 1000;
 
@@ -225,51 +151,13 @@ class _MyHomePageState extends State<MyHomePage> {
     return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
-  Future<void> showNotification(String message, String? liveAccount) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-        AndroidNotificationDetails(
-      'notification_channel',
-      'Notification',
-      channelDescription: 'notify',
-      importance: Importance.high,
-      priority: Priority.high,
-      playSound: true,
-      sound: RawResourceAndroidNotificationSound('notification'),
-    );
-
-    const NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
-
-    int notificationId =
-        DateTime.now().millisecondsSinceEpoch.remainder(100000);
-
-    if (!sentNotificationIds.contains(notificationId)) {
-      await flutterLocalNotificationsPlugin!.show(
-        notificationId,
-        'Pace Alert!',
-        message,
-        platformChannelSpecifics,
-        payload: liveAccount,
-      );
-
-      sentNotificationIds.add(notificationId);
-      isAlertActive = true;
-    }
-  }
-
-  void onNotificationTapped(String? payload) {
-    String url = 'https://www.twitch.tv/';
-
-    if (payload != null && payload.isNotEmpty) {
-      launchUrl(Uri.parse(url + payload));
-    } else {
-      log('No event ID to launch.');
-    }
-
+  void onNotificationTapped() {
     stopAlert();
   }
 
-  Future<void> onSelectNotification(String? payload) async {}
+  Future<void> onSelectNotification() async {
+    stopAlert();
+  }
 
   Future<void> stopAlert() async {
     isAlertActive = false;
