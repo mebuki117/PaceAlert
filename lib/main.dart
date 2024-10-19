@@ -42,7 +42,6 @@ class _MyHomePageState extends State<MyHomePage> {
   List<dynamic> _data = [];
   Timer? _timer;
   FlutterLocalNotificationsPlugin? flutterLocalNotificationsPlugin;
-  bool isAlertActive = false;
   Map<String, Set<String>> notifiedEventIds = {};
   Set<int> sentNotificationIds = {};
   bool _isRequestingPermission = false;
@@ -51,31 +50,10 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     requestPermissions();
-    initializeNotifications();
     fetchData();
     _timer = Timer.periodic(const Duration(seconds: 20), (timer) {
       fetchData();
     });
-  }
-
-  Future<void> initializeNotifications() async {
-    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/paceman');
-
-    const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
-
-    await flutterLocalNotificationsPlugin!.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse:
-          (NotificationResponse notificationResponse) {
-        stopAlert();
-      },
-    );
-
-    log('Notifications initialized.');
-    startForegroundService();
   }
 
   Future<void> requestPermissions() async {
@@ -138,26 +116,6 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  final Set<String> eventIdsToNotify = {
-    'rsg.enter_nether',
-    'rsg.enter_bastion',
-    'rsg.enter_fortress',
-    'rsg.first_portal',
-    'rsg.enter_stronghold',
-    'rsg.enter_end',
-    'rsg.credits',
-  };
-
-  final Map<String, int> eventIdThresholds = {
-    'rsg.enter_nether': 0,
-    'rsg.enter_bastion': 0,
-    'rsg.enter_fortress': 0,
-    'rsg.first_portal': 0,
-    'rsg.enter_stronghold': 300000,
-    'rsg.enter_end': 371000,
-    'rsg.credits': 421494,
-  };
-
   String formatTime(int time) {
     int seconds = time ~/ 1000;
 
@@ -165,23 +123,6 @@ class _MyHomePageState extends State<MyHomePage> {
     int remainingSeconds = seconds % 60;
 
     return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
-  }
-
-  void onNotificationTapped() {
-    stopAlert();
-  }
-
-  Future<void> onSelectNotification() async {
-    stopAlert();
-  }
-
-  Future<void> stopAlert() async {
-    isAlertActive = false;
-    log('Alert stopped. $isAlertActive');
-    setState(() {});
-
-    await flutterLocalNotificationsPlugin?.cancelAll();
-    await flutterLocalNotificationsPlugin?.cancel(0);
   }
 
   @override
@@ -355,18 +296,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     },
                   ),
           ),
-          if (isAlertActive) ...[
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ElevatedButton(
-                onPressed: () {
-                  stopAlert();
-                  setState(() {});
-                },
-                child: const Text('Stop Alert'),
-              ),
-            ),
-          ],
         ],
       ),
     );

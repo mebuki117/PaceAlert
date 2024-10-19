@@ -19,11 +19,14 @@ import okhttp3.*
 import org.json.JSONArray
 import java.io.IOException
 import androidx.core.app.NotificationCompat
+import android.media.MediaPlayer
 
 class ForegroundService : Service() {
-    private val channelId = "ForegroundServiceChannel"
+    private val foregroundChannelId = "ForegroundServiceChannel"
+    private val notificationChannelId = "NotificationChannel"
     private val notificationId = 1
     private val sentNotificationIds = mutableSetOf<Int>()
+    private var mediaPlayer: MediaPlayer? = null
     private val client = OkHttpClient()
     private var job: Job? = null
 
@@ -51,7 +54,7 @@ class ForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
+        createNotificationChannels()
         startForeground(notificationId, getOngoingNotification())
         startDataFetching()
     }
@@ -70,9 +73,11 @@ class ForegroundService : Service() {
             pendingIntentFlags
         )
 
-        return NotificationCompat.Builder(this, channelId)
+        val soundUri = Uri.parse("android.resource://${packageName}/raw/background_notification")
+
+        return NotificationCompat.Builder(this, foregroundChannelId)
             .setContentTitle("PaceAlert Running in Background")
-            .setContentText("Waiting for updates...")
+            .setContentText("waiting wr pace...")
             .setSmallIcon(R.drawable.ic_notification)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
@@ -178,6 +183,7 @@ class ForegroundService : Service() {
         if (!sentNotificationIds.contains(uniqueNotificationId)) {
             notificationManager.notify(uniqueNotificationId, notification)
             sentNotificationIds.add(uniqueNotificationId)
+            startAlarmSound()
         }
     }
 
@@ -195,36 +201,63 @@ class ForegroundService : Service() {
             pendingIntentFlags
         )
 
-        val soundUri = Uri.parse("android.resource://${packageName}/raw/notification")
-
-        return NotificationCompat.Builder(this, channelId)
+        return NotificationCompat.Builder(this, notificationChannelId)
             .setContentTitle(title)
             .setContentText(message)
             .setSmallIcon(R.mipmap.paceman)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
-            .setSound(soundUri)
             .build()
     }
 
-    private fun createNotificationChannel() {
+    private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val soundUri = Uri.parse("android.resource://${packageName}/raw/notification")
-        
-            val serviceChannel = NotificationChannel(
-                channelId,
+            val foregroundServiceChannel = NotificationChannel(
+                foregroundChannelId,
                 "Foreground Service Channel",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                setSound(soundUri, AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build())
+                setSound(
+                    Uri.parse("android.resource://${packageName}/raw/background_notification"),
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                )
+            }
+
+            val notificationChannel = NotificationChannel(
+                notificationChannelId,
+                "Notification Channel",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                setSound(
+                    Uri.parse("android.resource://${packageName}/raw/notification"),
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                )
             }
 
             val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(serviceChannel)
+            manager.createNotificationChannel(foregroundServiceChannel)
+            manager.createNotificationChannel(notificationChannel)
         }
+    }
+
+    private fun startAlarmSound() {
+        if (mediaPlayer == null) {
+            mediaPlayer = MediaPlayer.create(this, R.raw.notification)
+            mediaPlayer?.isLooping = false
+            mediaPlayer?.start()
+        }
+    }
+
+    private fun stopAlarmSound() {
+        mediaPlayer?.stop()
+        mediaPlayer?.release()
+        mediaPlayer = null
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -234,6 +267,7 @@ class ForegroundService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         stopDataFetching()
+        stopAlarmSound()
         Log.d("ForegroundService", "Service Destroyed")
     }
 
