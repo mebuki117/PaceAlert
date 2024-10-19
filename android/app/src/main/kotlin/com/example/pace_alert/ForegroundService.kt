@@ -20,6 +20,7 @@ import org.json.JSONArray
 import java.io.IOException
 import androidx.core.app.NotificationCompat
 import android.media.MediaPlayer
+import android.os.Handler
 
 class ForegroundService : Service() {
     private val foregroundChannelId = "ForegroundServiceChannel"
@@ -27,8 +28,11 @@ class ForegroundService : Service() {
     private val notificationId = 1
     private val sentNotificationIds = mutableSetOf<Int>()
     private var mediaPlayer: MediaPlayer? = null
+    private val handler = Handler()
+    private val stopDelay: Long = 300000
     private val client = OkHttpClient()
     private var job: Job? = null
+    
 
     private val eventIdsToNotify = setOf(
         "rsg.enter_nether",
@@ -272,6 +276,10 @@ class ForegroundService : Service() {
             mediaPlayer = MediaPlayer.create(this, R.raw.notification)
             mediaPlayer?.isLooping = true
             mediaPlayer?.start()
+
+            handler.postDelayed({
+                stopAlertSound()
+            }, stopDelay)
         }
     }
 
