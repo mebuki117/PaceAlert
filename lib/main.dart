@@ -6,7 +6,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:developer';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,10 +17,6 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'API Example',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
       darkTheme: ThemeData.dark(),
       themeMode: ThemeMode.system,
       home: const MyHomePage(),
@@ -44,58 +39,19 @@ class _MyHomePageState extends State<MyHomePage> {
   FlutterLocalNotificationsPlugin? flutterLocalNotificationsPlugin;
   Map<String, Set<String>> notifiedEventIds = {};
   Set<int> sentNotificationIds = {};
-  bool _isRequestingPermission = false;
 
   @override
   void initState() {
     super.initState();
-    requestPermissions();
+    startForegroundService();
     fetchData();
     _timer = Timer.periodic(const Duration(seconds: 20), (timer) {
       fetchData();
     });
   }
 
-  Future<void> requestPermissions() async {
-    if (_isRequestingPermission) {
-      log('Permission request is already in progress.');
-      return;
-    }
-
-    _isRequestingPermission = true;
-
-    try {
-      if (!(await Permission.location.isGranted)) {
-        Map<Permission, PermissionStatus> statuses = await [
-          Permission.location,
-        ].request();
-
-        if (statuses[Permission.location]!.isGranted) {
-          startForegroundService();
-        } else {
-          log('Location permission not granted');
-        }
-      } else {
-        startForegroundService();
-      }
-    } finally {
-      _isRequestingPermission = false;
-    }
-  }
-
   Future<void> startForegroundService() async {
-    PermissionStatus locationPermissionStatus =
-        await Permission.location.request();
-
-    if (locationPermissionStatus.isGranted) {
-      try {
-        await platform.invokeMethod('startService');
-      } on PlatformException catch (e) {
-        log('Failed to start service: ${e.message}');
-      }
-    } else {
-      log('Location permission not granted');
-    }
+    await platform.invokeMethod('startService');
   }
 
   Future<void> fetchData() async {

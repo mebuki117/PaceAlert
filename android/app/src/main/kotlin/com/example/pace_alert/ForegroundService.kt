@@ -73,8 +73,6 @@ class ForegroundService : Service() {
             pendingIntentFlags
         )
 
-        val soundUri = Uri.parse("android.resource://${packageName}/raw/background_notification")
-
         return NotificationCompat.Builder(this, foregroundChannelId)
             .setContentTitle("PaceAlert Running in Background")
             .setContentText("waiting wr pace...")
@@ -218,7 +216,7 @@ class ForegroundService : Service() {
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 setSound(
-                    Uri.parse("android.resource://${packageName}/raw/background_notification"),
+                    Uri.parse("android.resource://${packageName}/raw/silent"),
                     AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_NOTIFICATION)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -275,16 +273,10 @@ class ForegroundService : Service() {
         val restartServiceIntent = Intent(applicationContext, ForegroundService::class.java).also {
             it.setPackage(packageName)
         }
-        val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
-        } else {
-            PendingIntent.FLAG_ONE_SHOT
-        }
-        val restartServicePendingIntent = PendingIntent.getService(
-            applicationContext, 1, restartServiceIntent, pendingIntentFlags
-        )
-        val alertService = getSystemService(ALARM_SERVICE) as AlarmManager
-        alertService.set(
+        val restartServicePendingIntent: PendingIntent =
+            PendingIntent.getService(this, 1, restartServiceIntent, PendingIntent.FLAG_ONE_SHOT)
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmManager.set(
             AlarmManager.ELAPSED_REALTIME,
             SystemClock.elapsedRealtime() + 1000,
             restartServicePendingIntent
