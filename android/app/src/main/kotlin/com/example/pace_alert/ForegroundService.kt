@@ -62,7 +62,7 @@ class ForegroundService : Service() {
     private fun getOngoingNotification(): Notification {
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE // FLAG_IMMUTABLEを追加
         } else {
             PendingIntent.FLAG_UPDATE_CURRENT
         }
@@ -72,7 +72,7 @@ class ForegroundService : Service() {
             notificationIntent,
             pendingIntentFlags
         )
-
+    
         return NotificationCompat.Builder(this, foregroundChannelId)
             .setContentTitle("PaceAlert Running in Background")
             .setContentText("waiting wr pace...")
@@ -175,9 +175,9 @@ class ForegroundService : Service() {
     private fun showNotification(message: String, liveAccount: String?) {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val notification = getNotification("Pace Alert!", message)
-
+    
         val uniqueNotificationId = message.hashCode()
-
+    
         if (!sentNotificationIds.contains(uniqueNotificationId)) {
             notificationManager.notify(uniqueNotificationId, notification)
             sentNotificationIds.add(uniqueNotificationId)
@@ -192,12 +192,13 @@ class ForegroundService : Service() {
         } else {
             PendingIntent.FLAG_UPDATE_CURRENT
         }
-        val pendingIntent = PendingIntent.getActivity(
+        val pendingIntent: PendingIntent = PendingIntent.getBroadcast(
             this,
             0,
             notificationIntent,
-            pendingIntentFlags
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE // FLAG_IMMUTABLEを追加
         )
+        
 
         return NotificationCompat.Builder(this, notificationChannelId)
             .setContentTitle(title)
@@ -274,7 +275,7 @@ class ForegroundService : Service() {
             it.setPackage(packageName)
         }
         val restartServicePendingIntent: PendingIntent =
-            PendingIntent.getService(this, 1, restartServiceIntent, PendingIntent.FLAG_ONE_SHOT)
+            PendingIntent.getService(this, 1, restartServiceIntent, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE) // FLAG_IMMUTABLEを追加
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
         alarmManager.set(
             AlarmManager.ELAPSED_REALTIME,
