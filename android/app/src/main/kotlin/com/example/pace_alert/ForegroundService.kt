@@ -183,7 +183,7 @@ class ForegroundService : Service() {
         if (!sentNotificationIds.contains(uniqueNotificationId)) {
             notificationManager.notify(uniqueNotificationId, notification)
             sentNotificationIds.add(uniqueNotificationId)
-            startAlarmSound()
+            startAlertSound()
         }
     }
 
@@ -246,7 +246,7 @@ class ForegroundService : Service() {
         }
     }
 
-    private fun startAlarmSound() {
+    private fun startAlertSound() {
         if (mediaPlayer == null) {
             mediaPlayer = MediaPlayer.create(this, R.raw.notification)
             mediaPlayer?.isLooping = false
@@ -254,7 +254,7 @@ class ForegroundService : Service() {
         }
     }
 
-    private fun stopAlarmSound() {
+    private fun stopAlertSound() {
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
@@ -267,7 +267,7 @@ class ForegroundService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         stopDataFetching()
-        stopAlarmSound()
+        stopAlertSound()
         Log.d("ForegroundService", "Service Destroyed")
     }
 
@@ -283,8 +283,8 @@ class ForegroundService : Service() {
         val restartServicePendingIntent = PendingIntent.getService(
             applicationContext, 1, restartServiceIntent, pendingIntentFlags
         )
-        val alarmService = getSystemService(ALARM_SERVICE) as AlarmManager
-        alarmService.set(
+        val alertService = getSystemService(ALARM_SERVICE) as AlarmManager
+        alertService.set(
             AlarmManager.ELAPSED_REALTIME,
             SystemClock.elapsedRealtime() + 1000,
             restartServicePendingIntent
