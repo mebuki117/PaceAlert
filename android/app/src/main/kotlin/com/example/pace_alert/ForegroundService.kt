@@ -59,33 +59,18 @@ class ForegroundService : Service() {
         startDataFetching()
     }
 
-    private fun getOngoingNotification(): Notification {
-        val notificationIntent = Intent(this, MainActivity::class.java)
-        val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE // FLAG_IMMUTABLEを追加
-        } else {
-            PendingIntent.FLAG_UPDATE_CURRENT
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            notificationIntent,
-            pendingIntentFlags
-        )
-    
-        return NotificationCompat.Builder(this, foregroundChannelId)
-            .setContentTitle("PaceAlert Running in Background")
-            .setContentText("waiting wr pace...")
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentIntent(pendingIntent)
-            .setOngoing(true)
-            .build()
-    }
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(notificationId, getOngoingNotification())
+        when (intent?.action) {
+            "STOP_SOUND" -> {
+                stopAlertSound()
+            }
+            else -> {
+                startForeground(notificationId, getOngoingNotification())
+            }
+        }
         return START_STICKY
     }
+    
 
     private fun startDataFetching() {
         job = CoroutineScope(Dispatchers.IO).launch {
@@ -172,9 +157,47 @@ class ForegroundService : Service() {
         return String.format("%02d:%02d", minutes, remainingSeconds)
     }
 
+    private fun getOngoingNotification(): Notification {
+        val notificationIntent = Intent(this, MainActivity::class.java)
+        val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            notificationIntent,
+            pendingIntentFlags
+        )
+    
+        return NotificationCompat.Builder(this, foregroundChannelId)
+            .setContentTitle("PaceAlert Running in Background")
+            .setContentText("waiting wr pace...")
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .build()
+    }
+
     private fun showNotification(message: String, liveAccount: String?) {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val notification = getNotification("Pace Alert!", message)
+    
+        val stopIntent = Intent(this, ForegroundService::class.java).apply {
+            action = "STOP_SOUND"
+        }
+        val stopPendingIntent = PendingIntent.getService(
+            this, 0, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    
+        val notification = NotificationCompat.Builder(this, notificationChannelId)
+            .setContentTitle("Pace Alert!")
+            .setContentText(message)
+            .setSmallIcon(R.mipmap.paceman)
+            .addAction(0, "Stop Alert", stopPendingIntent)
+            .setDeleteIntent(stopPendingIntent)
+            .setAutoCancel(true)
+            .build()
     
         val uniqueNotificationId = message.hashCode()
     
@@ -196,10 +219,9 @@ class ForegroundService : Service() {
             this,
             0,
             notificationIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE // FLAG_IMMUTABLEを追加
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
-
         return NotificationCompat.Builder(this, notificationChannelId)
             .setContentTitle(title)
             .setContentText(message)
@@ -248,7 +270,7 @@ class ForegroundService : Service() {
     private fun startAlertSound() {
         if (mediaPlayer == null) {
             mediaPlayer = MediaPlayer.create(this, R.raw.notification)
-            mediaPlayer?.isLooping = false
+            mediaPlayer?.isLooping = true
             mediaPlayer?.start()
         }
     }
@@ -275,7 +297,7 @@ class ForegroundService : Service() {
             it.setPackage(packageName)
         }
         val restartServicePendingIntent: PendingIntent =
-            PendingIntent.getService(this, 1, restartServiceIntent, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE) // FLAG_IMMUTABLEを追加
+            PendingIntent.getService(this, 1, restartServiceIntent, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE)
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
         alarmManager.set(
             AlarmManager.ELAPSED_REALTIME,
