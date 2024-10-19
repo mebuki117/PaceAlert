@@ -18,6 +18,7 @@ import kotlinx.coroutines.*
 import okhttp3.*
 import org.json.JSONArray
 import java.io.IOException
+import androidx.core.app.NotificationCompat
 
 class ForegroundService : Service() {
     private val channelId = "ForegroundServiceChannel"
@@ -40,10 +41,10 @@ class ForegroundService : Service() {
         "rsg.enter_nether" to 0,
         "rsg.enter_bastion" to 0,
         "rsg.enter_fortress" to 0,
-        "rsg.first_portal" to 0,
-        "rsg.enter_stronghold" to 300000, // 300000
-        "rsg.enter_end" to 371000, // 371000
-        "rsg.credits" to 421494 // 421494
+        "rsg.first_portal" to ,
+        "rsg.enter_stronghold" to 300000,
+        "rsg.enter_end" to 371000,
+        "rsg.credits" to 421494
     )
 
     private val notifiedEventIds = mutableMapOf<String, MutableSet<String>>()
@@ -51,12 +52,35 @@ class ForegroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        startForeground(notificationId, getNotification("Pace Alert Running", "Waiting for pace..."))
+        startForeground(notificationId, getOngoingNotification())
         startDataFetching()
     }
 
+    private fun getOngoingNotification(): Notification {
+        val notificationIntent = Intent(this, MainActivity::class.java)
+        val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            notificationIntent,
+            pendingIntentFlags
+        )
+
+        return NotificationCompat.Builder(this, channelId)
+            .setContentTitle("PaceAlert Running in Background")
+            .setContentText("Waiting for updates...")
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .build()
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startDataFetching()
+        startForeground(notificationId, getOngoingNotification())
         return START_STICKY
     }
 
@@ -173,7 +197,7 @@ class ForegroundService : Service() {
 
         val soundUri = Uri.parse("android.resource://${packageName}/raw/notification")
 
-        return Notification.Builder(this, channelId)
+        return NotificationCompat.Builder(this, channelId)
             .setContentTitle(title)
             .setContentText(message)
             .setSmallIcon(R.mipmap.paceman)

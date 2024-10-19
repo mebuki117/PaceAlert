@@ -6,6 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:developer';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   runApp(const MyApp());
@@ -44,10 +45,12 @@ class _MyHomePageState extends State<MyHomePage> {
   bool isAlertActive = false;
   Map<String, Set<String>> notifiedEventIds = {};
   Set<int> sentNotificationIds = {};
+  bool _isRequestingPermission = false;
 
   @override
   void initState() {
     super.initState();
+    requestPermissions();
     initializeNotifications();
     fetchData();
     _timer = Timer.periodic(const Duration(seconds: 20), (timer) {
@@ -75,32 +78,45 @@ class _MyHomePageState extends State<MyHomePage> {
     startForegroundService();
   }
 
-  Future<void> startForegroundService() async {
+  Future<void> requestPermissions() async {
+    if (_isRequestingPermission) {
+      log('Permission request is already in progress.');
+      return;
+    }
+
+    _isRequestingPermission = true;
+
     try {
-      await platform.invokeMethod('startService');
+      if (!(await Permission.location.isGranted)) {
+        Map<Permission, PermissionStatus> statuses = await [
+          Permission.location,
+        ].request();
 
-      const AndroidNotificationDetails androidPlatformChannelSpecifics =
-          AndroidNotificationDetails(
-        'foreground_service_channel',
-        'Foreground Service',
-        channelDescription: 'Foreground service running',
-        importance: Importance.low,
-        priority: Priority.low,
-        showWhen: false,
-        ongoing: true,
-      );
+        if (statuses[Permission.location]!.isGranted) {
+          startForegroundService();
+        } else {
+          log('Location permission not granted');
+        }
+      } else {
+        startForegroundService();
+      }
+    } finally {
+      _isRequestingPermission = false;
+    }
+  }
 
-      const NotificationDetails platformChannelSpecifics =
-          NotificationDetails(android: androidPlatformChannelSpecifics);
+  Future<void> startForegroundService() async {
+    PermissionStatus locationPermissionStatus =
+        await Permission.location.request();
 
-      await flutterLocalNotificationsPlugin!.show(
-        1,
-        'PaceAlert Running in Background',
-        'waiting wr pace...',
-        platformChannelSpecifics,
-      );
-    } on PlatformException catch (e) {
-      log('Failed to start service: ${e.message}');
+    if (locationPermissionStatus.isGranted) {
+      try {
+        await platform.invokeMethod('startService');
+      } on PlatformException catch (e) {
+        log('Failed to start service: ${e.message}');
+      }
+    } else {
+      log('Location permission not granted');
     }
   }
 

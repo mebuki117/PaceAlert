@@ -15,6 +15,7 @@ dependencies:
   flutter_foreground_task: ^8.10.4
   url_launcher: ^6.3.1
   audioplayers: ^6.1.0
+  permission_handler: ^11.3.1
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
