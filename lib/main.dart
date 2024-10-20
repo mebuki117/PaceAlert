@@ -160,12 +160,21 @@ class _MyHomePageState extends State<MyHomePage> {
                       String? highestPriorityEvent;
                       int? highestIgt;
 
+                      bool isBastionUsed = false;
+                      bool isFortressUsed = false;
+
                       if (eventList != null) {
                         for (var event in eventList) {
                           String eventId = event['eventId'];
                           int eventIgt = event['igt'];
 
                           if (eventPriority.containsKey(eventId)) {
+                            if (eventId == 'rsg.enter_bastion') {
+                              isBastionUsed = true;
+                            } else if (eventId == 'rsg.enter_fortress') {
+                              isFortressUsed = true;
+                            }
+
                             if (highestPriorityEvent == null ||
                                 eventPriority[eventId]! <
                                     eventPriority[highestPriorityEvent]!) {
@@ -173,6 +182,23 @@ class _MyHomePageState extends State<MyHomePage> {
                               highestIgt = eventIgt;
                             }
                           }
+                        }
+
+                        if (highestPriorityEvent == 'rsg.enter_bastion' &&
+                            isFortressUsed) {
+                          highestPriorityEvent = 'rsg.enter_fortress';
+                          highestIgt = eventList.firstWhere(
+                            (event) => event['eventId'] == 'rsg.enter_fortress',
+                            orElse: () => null,
+                          )?['igt'];
+                        } else if (highestPriorityEvent ==
+                                'rsg.enter_fortress' &&
+                            isBastionUsed) {
+                          highestPriorityEvent = 'rsg.enter_bastion';
+                          highestIgt = eventList.firstWhere(
+                            (event) => event['eventId'] == 'rsg.enter_bastion',
+                            orElse: () => null,
+                          )?['igt'];
                         }
                       }
 
