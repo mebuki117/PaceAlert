@@ -89,13 +89,13 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   final Map<String, int> eventPriority = {
-    'rsg.enter_end': 1,
-    'rsg.enter_stronghold': 2,
-    'rsg.first_portal': 3,
-    'rsg.enter_fortress': 4,
-    'rsg.enter_bastion': 5,
-    'rsg.enter_nether': 6,
-    'rsg.credits': 7,
+    'rsg.credits': 1,
+    'rsg.enter_end': 2,
+    'rsg.enter_stronghold': 3,
+    'rsg.first_portal': 4,
+    'rsg.enter_fortress': 5,
+    'rsg.enter_bastion': 6,
+    'rsg.enter_nether': 7,
   };
 
   List<String> getEventDisplayText(String eventId) {
