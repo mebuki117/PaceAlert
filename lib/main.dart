@@ -151,116 +151,132 @@ class _MyHomePageState extends State<MyHomePage> {
                 ? const Center(
                     child: Text('No one is currently on pace...'),
                   )
-                : ListView.builder(
-                    itemCount: _data.length,
-                    itemBuilder: (context, index) {
-                      var item = _data[index];
-                      var eventList = item['eventList'] as List<dynamic>?;
+                : Builder(
+                    builder: (context) {
+                      final filteredData = _data.where((item) {
+                        final liveAccount = item['user']['liveAccount'];
+                        return !_isLiveOnly || liveAccount != null;
+                      }).toList();
 
-                      String? highestPriorityEvent;
-                      int? highestIgt;
+                      if (filteredData.isEmpty) {
+                        return const Center(
+                          child: Text('No one is currently on pace...'),
+                        );
+                      }
 
-                      bool isBastionUsed = false;
-                      bool isFortressUsed = false;
+                      return ListView.builder(
+                        itemCount: filteredData.length,
+                        itemBuilder: (context, index) {
+                          var item = filteredData[index];
+                          var eventList = item['eventList'] as List<dynamic>?;
 
-                      if (eventList != null) {
-                        for (var event in eventList) {
-                          String eventId = event['eventId'];
-                          int eventIgt = event['igt'];
+                          String? highestPriorityEvent;
+                          int? highestIgt;
 
-                          if (eventPriority.containsKey(eventId)) {
-                            if (eventId == 'rsg.enter_bastion') {
-                              isBastionUsed = true;
-                            } else if (eventId == 'rsg.enter_fortress') {
-                              isFortressUsed = true;
+                          bool isBastionUsed = false;
+                          bool isFortressUsed = false;
+
+                          if (eventList != null) {
+                            for (var event in eventList) {
+                              String eventId = event['eventId'];
+                              int eventIgt = event['igt'];
+
+                              if (eventPriority.containsKey(eventId)) {
+                                if (eventId == 'rsg.enter_bastion') {
+                                  isBastionUsed = true;
+                                } else if (eventId == 'rsg.enter_fortress') {
+                                  isFortressUsed = true;
+                                }
+
+                                if (highestPriorityEvent == null ||
+                                    eventPriority[eventId]! <
+                                        eventPriority[highestPriorityEvent]!) {
+                                  highestPriorityEvent = eventId;
+                                  highestIgt = eventIgt;
+                                }
+                              }
                             }
 
-                            if (highestPriorityEvent == null ||
-                                eventPriority[eventId]! <
-                                    eventPriority[highestPriorityEvent]!) {
-                              highestPriorityEvent = eventId;
-                              highestIgt = eventIgt;
+                            if (highestPriorityEvent == 'rsg.enter_bastion' &&
+                                isFortressUsed) {
+                              highestPriorityEvent = 'rsg.enter_fortress';
+                              highestIgt = eventList.firstWhere(
+                                (event) =>
+                                    event['eventId'] == 'rsg.enter_fortress',
+                                orElse: () => null,
+                              )?['igt'];
+                            } else if (highestPriorityEvent ==
+                                    'rsg.enter_fortress' &&
+                                isBastionUsed) {
+                              highestPriorityEvent = 'rsg.enter_bastion';
+                              highestIgt = eventList.firstWhere(
+                                (event) =>
+                                    event['eventId'] == 'rsg.enter_bastion',
+                                orElse: () => null,
+                              )?['igt'];
                             }
                           }
-                        }
 
-                        if (highestPriorityEvent == 'rsg.enter_bastion' &&
-                            isFortressUsed) {
-                          highestPriorityEvent = 'rsg.enter_fortress';
-                          highestIgt = eventList.firstWhere(
-                            (event) => event['eventId'] == 'rsg.enter_fortress',
-                            orElse: () => null,
-                          )?['igt'];
-                        } else if (highestPriorityEvent ==
-                                'rsg.enter_fortress' &&
-                            isBastionUsed) {
-                          highestPriorityEvent = 'rsg.enter_bastion';
-                          highestIgt = eventList.firstWhere(
-                            (event) => event['eventId'] == 'rsg.enter_bastion',
-                            orElse: () => null,
-                          )?['igt'];
-                        }
-                      }
+                          final liveAccount = item['user']['liveAccount'];
 
-                      final liveAccount = item['user']['liveAccount'];
-
-                      if (_isLiveOnly && liveAccount == null) {
-                        return Container();
-                      }
-
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                            vertical: 8, horizontal: 16),
-                        elevation: 4,
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          leading: highestPriorityEvent != null
-                              ? Image.asset(
-                                  getEventDisplayText(highestPriorityEvent)[1],
-                                  width: 24,
-                                  height: 24,
-                                )
-                              : const Icon(Icons.access_time,
-                                  color: Colors.blue),
-                          title: liveAccount != null
-                              ? GestureDetector(
-                                  onTap: () {
-                                    launchUrl(Uri.parse(
-                                        'https://www.twitch.tv/$liveAccount'));
-                                  },
-                                  child: Text(
-                                    item['nickname'] ?? 'No Name',
-                                    style: const TextStyle(
-                                      color: Colors.blue,
-                                      decoration: TextDecoration.underline,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                )
-                              : Text(item['nickname'] ?? 'No Name'),
-                          subtitle: highestPriorityEvent != null
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
+                          return Card(
+                            margin: const EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 16),
+                            elevation: 4,
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.all(16),
+                              leading: highestPriorityEvent != null
+                                  ? Image.asset(
                                       getEventDisplayText(
-                                          highestPriorityEvent)[0],
-                                      style: const TextStyle(
-                                        color: Colors.red,
-                                        fontWeight: FontWeight.bold,
+                                          highestPriorityEvent)[1],
+                                      width: 24,
+                                      height: 24,
+                                    )
+                                  : const Icon(Icons.access_time,
+                                      color: Colors.blue),
+                              title: liveAccount != null
+                                  ? GestureDetector(
+                                      onTap: () {
+                                        launchUrl(Uri.parse(
+                                            'https://www.twitch.tv/$liveAccount'));
+                                      },
+                                      child: Text(
+                                        item['nickname'] ?? 'No Name',
+                                        style: const TextStyle(
+                                          color: Colors.blue,
+                                          decoration: TextDecoration.underline,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
-                                    ),
-                                    Text(
-                                      formatTime(highestIgt!),
-                                      style: const TextStyle(
-                                        color: Colors.grey,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : const Text('No one is currently on pace...'),
-                        ),
+                                    )
+                                  : Text(item['nickname'] ?? 'No Name'),
+                              subtitle: highestPriorityEvent != null
+                                  ? Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          getEventDisplayText(
+                                              highestPriorityEvent)[0],
+                                          style: const TextStyle(
+                                            color: Colors.red,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          formatTime(highestIgt!),
+                                          style: const TextStyle(
+                                            color: Colors.grey,
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : const Text(
+                                      'No one is currently on pace...'),
+                            ),
+                          );
+                        },
                       );
                     },
                   ),
