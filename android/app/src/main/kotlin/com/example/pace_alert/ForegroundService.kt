@@ -250,16 +250,10 @@ class ForegroundService : Service() {
                 notificationChannelId,
                 "Notification Channel",
                 NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                setSound(
-                    Uri.parse("android.resource://${packageName}/raw/notification"),
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
-            }
-    
+                ).apply {
+                     setSound(null, null)
+                }
+
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(foregroundServiceChannel)
             manager.createNotificationChannel(notificationChannel)
@@ -268,26 +262,28 @@ class ForegroundService : Service() {
 
     private fun startAlertSound() {
         if (ringtone == null) {
-            val notificationUri = Uri.parse("android.resource://${packageName}/raw/notification")
-            ringtone = RingtoneManager.getRingtone(applicationContext, notificationUri)
-            ringtone?.apply {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    isLooping = true
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            if (audioManager.ringerMode != AudioManager.RINGER_MODE_SILENT) {
+                val notificationUri = Uri.parse("android.resource://${packageName}/raw/notification")
+                ringtone = RingtoneManager.getRingtone(applicationContext, notificationUri)
+                ringtone?.apply {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        isLooping = true
+                    }
+                    audioAttributes = AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                    play()
                 }
-                audioAttributes = AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-                play()
-            }
     
-            handler.postDelayed({
-                stopAlertSound()
-            }, stopDelay)
+                handler.postDelayed({
+                    stopAlertSound()
+                }, stopDelay)
+            }
         }
     }
     
-
     private fun stopAlertSound() {
         ringtone?.stop()
         ringtone = null
