@@ -39,6 +39,7 @@ class _MyHomePageState extends State<MyHomePage> {
   FlutterLocalNotificationsPlugin? flutterLocalNotificationsPlugin;
   Map<String, Set<String>> notifiedEventIds = {};
   Set<int> sentNotificationIds = {};
+  bool _isLiveOnly = false;
 
   @override
   void initState() {
@@ -97,26 +98,10 @@ class _MyHomePageState extends State<MyHomePage> {
     'rsg.credits': 7,
   };
 
-  List<String> getSortedEvents() {
-    List<String> sortedEvents = [];
-    for (var item in _data) {
-      var eventList = item['eventList'];
-      if (eventList != null) {
-        for (var event in eventList) {
-          String eventId = event['eventId'];
-          if (eventPriority.containsKey(eventId)) {
-            sortedEvents.add(eventId);
-          }
-        }
-      }
-    }
-
-    sortedEvents.sort((a, b) => eventPriority[a]!.compareTo(eventPriority[b]!));
-    return sortedEvents;
-  }
-
   List<String> getEventDisplayText(String eventId) {
     switch (eventId) {
+      case 'rsg.credits':
+        return ['Credits', 'assets/icons/credits.png'];
       case 'rsg.enter_end':
         return ['Enter End', 'assets/icons/end.png'];
       case 'rsg.enter_stronghold':
@@ -129,22 +114,10 @@ class _MyHomePageState extends State<MyHomePage> {
         return ['Enter Bastion', 'assets/icons/bastion.png'];
       case 'rsg.enter_nether':
         return ['Enter Nether', 'assets/icons/nether.png'];
-      case 'rsg.credits':
-        return ['Credits', 'assets/icons/credits.png'];
       default:
-        return ['Unknown Event', 'assets/icons/default.png'];
+        return ['Unknown Event', 'assets/icons/paceman.png'];
     }
   }
-
-  Map<String, String> eventDisplayTexts = {
-    'rsg.enter_end': 'Enter End',
-    'rsg.enter_stronghold': 'Enter Stronghold',
-    'rsg.first_portal': 'First Portal',
-    'rsg.enter_fortress': 'Enter Fortress',
-    'rsg.enter_bastion': 'Enter Bastion',
-    'rsg.enter_nether': 'Enter Nether',
-    'rsg.credits': 'Finish',
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -164,6 +137,15 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Column(
         children: <Widget>[
+          SwitchListTile(
+            title: const Text('Live Only'),
+            value: _isLiveOnly,
+            onChanged: (bool value) {
+              setState(() {
+                _isLiveOnly = value;
+              });
+            },
+          ),
           Expanded(
             child: _data.isEmpty
                 ? const Center(
@@ -195,6 +177,11 @@ class _MyHomePageState extends State<MyHomePage> {
                       }
 
                       final liveAccount = item['user']['liveAccount'];
+
+                      if (_isLiveOnly && liveAccount == null) {
+                        return Container();
+                      }
+
                       return Card(
                         margin: const EdgeInsets.symmetric(
                             vertical: 8, horizontal: 16),

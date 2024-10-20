@@ -33,7 +33,6 @@ class ForegroundService : Service() {
     private val client = OkHttpClient()
     private var job: Job? = null
     
-
     private val eventIdsToNotify = setOf(
         "rsg.enter_nether",
         "rsg.enter_bastion",
