@@ -153,6 +153,15 @@ class _MyHomePageState extends State<MyHomePage> {
                   )
                 : Builder(
                     builder: (context) {
+                      final gameVersionCheck =
+                          _data.any((item) => item['gameVersion'] == '1.16.1');
+
+                      if (!gameVersionCheck) {
+                        return const Center(
+                          child: Text('No one is currently on pace...'),
+                        );
+                      }
+
                       final filteredData = _data.where((item) {
                         final liveAccount = item['user']['liveAccount'];
                         return !_isLiveOnly || liveAccount != null;
@@ -218,6 +227,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           }
 
                           final liveAccount = item['user']['liveAccount'];
+                          final itemData = item['itemData']?['estimatedCounts'];
 
                           return Card(
                             margin: const EdgeInsets.symmetric(
@@ -250,19 +260,22 @@ class _MyHomePageState extends State<MyHomePage> {
                                       ),
                                     )
                                   : Text(item['nickname'] ?? 'No Name'),
-                              subtitle: highestPriorityEvent != null
-                                  ? Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (highestPriorityEvent != null) ...[
+                                    Text(
+                                      getEventDisplayText(
+                                          highestPriorityEvent)[0],
+                                      style: const TextStyle(
+                                        color: Colors.red,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          getEventDisplayText(
-                                              highestPriorityEvent)[0],
-                                          style: const TextStyle(
-                                            color: Colors.red,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
                                         Text(
                                           formatTime(highestIgt!),
                                           style: const TextStyle(
@@ -270,10 +283,53 @@ class _MyHomePageState extends State<MyHomePage> {
                                             fontStyle: FontStyle.italic,
                                           ),
                                         ),
+                                        Row(
+                                          children: [
+                                            const SizedBox(width: 8),
+                                            if (itemData?[
+                                                    'minecraft:ender_pearl'] !=
+                                                null) ...[
+                                              const SizedBox(width: 8),
+                                              Image.asset(
+                                                'assets/icons/ender_pearl.png',
+                                                width: 16,
+                                                height: 16,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                itemData[
+                                                        'minecraft:ender_pearl']
+                                                    .toString(),
+                                                style: const TextStyle(
+                                                  color: Colors.grey,
+                                                ),
+                                              )
+                                            ],
+                                            if (itemData?[
+                                                    'minecraft:blaze_rod'] !=
+                                                null) ...[
+                                              const SizedBox(width: 8),
+                                              Image.asset(
+                                                'assets/icons/blaze_rod.png',
+                                                width: 16,
+                                                height: 16,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                itemData['minecraft:blaze_rod']
+                                                    .toString(),
+                                                style: const TextStyle(
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
                                       ],
-                                    )
-                                  : const Text(
-                                      'No one is currently on pace...'),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ),
                           );
                         },
