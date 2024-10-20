@@ -7,7 +7,6 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.media.AudioAttributes
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
@@ -19,16 +18,19 @@ import okhttp3.*
 import org.json.JSONArray
 import java.io.IOException
 import androidx.core.app.NotificationCompat
-import android.media.MediaPlayer
 import android.os.Handler
+import android.media.Ringtone
+import android.media.RingtoneManager
+import android.media.AudioManager
+import android.media.AudioAttributes
 
 class ForegroundService : Service() {
     private val foregroundChannelId = "ForegroundServiceChannel"
     private val notificationChannelId = "NotificationChannel"
     private val notificationId = 1
     private val sentNotificationIds = mutableSetOf<Int>()
-    private var mediaPlayer: MediaPlayer? = null
     private val handler = Handler()
+    private var ringtone: Ringtone? = null
     private val stopDelay: Long = 300000
     private val client = OkHttpClient()
     private var job: Job? = null
@@ -239,21 +241,15 @@ class ForegroundService : Service() {
             val foregroundServiceChannel = NotificationChannel(
                 foregroundChannelId,
                 "Foreground Service Channel",
-                NotificationManager.IMPORTANCE_HIGH
+                NotificationManager.IMPORTANCE_LOW
             ).apply {
-                setSound(
-                    Uri.parse("android.resource://${packageName}/raw/silent"),
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
+                setSound(null, null)
             }
-
+    
             val notificationChannel = NotificationChannel(
                 notificationChannelId,
                 "Notification Channel",
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 setSound(
                     Uri.parse("android.resource://${packageName}/raw/notification"),
@@ -263,29 +259,38 @@ class ForegroundService : Service() {
                         .build()
                 )
             }
-
+    
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(foregroundServiceChannel)
             manager.createNotificationChannel(notificationChannel)
         }
-    }
+    }     
 
     private fun startAlertSound() {
-        if (mediaPlayer == null) {
-            mediaPlayer = MediaPlayer.create(this, R.raw.notification)
-            mediaPlayer?.isLooping = true
-            mediaPlayer?.start()
-
+        if (ringtone == null) {
+            val notificationUri = Uri.parse("android.resource://${packageName}/raw/notification")
+            ringtone = RingtoneManager.getRingtone(applicationContext, notificationUri)
+            ringtone?.apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    isLooping = true
+                }
+                audioAttributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+                play()
+            }
+    
             handler.postDelayed({
                 stopAlertSound()
             }, stopDelay)
         }
     }
+    
 
     private fun stopAlertSound() {
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
-        mediaPlayer = null
+        ringtone?.stop()
+        ringtone = null
     }
 
     override fun onBind(intent: Intent?): IBinder? {
