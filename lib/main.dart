@@ -149,6 +149,16 @@ class MainState extends State<Main> {
     }
   }
 
+  final Map<String, int> eventPriority = {
+    'rsg.credits': 1,
+    'rsg.enter_end': 2,
+    'rsg.enter_stronghold': 3,
+    'rsg.first_portal': 4,
+    'rsg.enter_fortress': 5,
+    'rsg.enter_bastion': 6,
+    'rsg.enter_nether': 7,
+  };
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -221,15 +231,6 @@ class MainState extends State<Main> {
                           )
                         : Builder(
                             builder: (context) {
-                              final gameVersionCheck = _data.any(
-                                  (item) => item['gameVersion'] == '1.16.1');
-
-                              if (!gameVersionCheck) {
-                                return const Center(
-                                  child: Text('No one is currently on pace...'),
-                                );
-                              }
-
                               final filteredData = _data.where((item) {
                                 final liveAccount = item['user']['liveAccount'];
                                 final isHidden = item['isHidden'] ?? false;
@@ -245,33 +246,66 @@ class MainState extends State<Main> {
                                 );
                               }
 
-                              return ListView.builder(
-                                itemCount: filteredData.length,
-                                itemBuilder: (context, index) {
-                                  var item = filteredData[index];
-                                  var eventList =
-                                      item['eventList'] as List<dynamic>?;
+                              final prioritizedItems = filteredData.map((item) {
+                                final eventList =
+                                    item['eventList'] as List<dynamic>?;
 
-                                  String? highestEvent;
-                                  int? highestIgt;
+                                String? highestEvent;
+                                int? highestIgt;
 
-                                  if (eventList != null) {
-                                    for (var event in eventList) {
-                                      String eventId = event['eventId'];
-                                      int eventIgt = event['igt'];
+                                if (eventList != null) {
+                                  for (var event in eventList) {
+                                    String eventId = event['eventId'];
+                                    int eventIgt = event['igt'];
 
-                                      if (highestIgt == null ||
-                                          eventIgt > highestIgt) {
+                                    if (eventPriority.containsKey(eventId)) {
+                                      if ((highestEvent == null ||
+                                              eventPriority[eventId]! <
+                                                  eventPriority[
+                                                      highestEvent]!) ||
+                                          (eventId == highestEvent &&
+                                              eventIgt < highestIgt!)) {
                                         highestEvent = eventId;
                                         highestIgt = eventIgt;
                                       }
                                     }
                                   }
+                                }
+
+                                return {
+                                  'item': item,
+                                  'highestEvent': highestEvent,
+                                  'highestIgt': highestIgt,
+                                };
+                              }).toList();
+
+                              prioritizedItems.sort((a, b) {
+                                final priorityA =
+                                    eventPriority[a['highestEvent']] ??
+                                        double.infinity;
+                                final priorityB =
+                                    eventPriority[b['highestEvent']] ??
+                                        double.infinity;
+
+                                if (priorityA == priorityB) {
+                                  return (a['highestIgt'] ?? double.infinity)
+                                      .compareTo(
+                                          b['highestIgt'] ?? double.infinity);
+                                }
+
+                                return priorityA.compareTo(priorityB);
+                              });
+
+                              return ListView.builder(
+                                itemCount: prioritizedItems.length,
+                                itemBuilder: (context, index) {
+                                  var itemData = prioritizedItems[index];
+                                  var item = itemData['item'];
+                                  var highestEvent = itemData['highestEvent'];
+                                  var highestIgt = itemData['highestIgt'];
 
                                   final liveAccount =
                                       item['user']['liveAccount'];
-                                  final itemData =
-                                      item['itemData']?['estimatedCounts'];
 
                                   return Card(
                                     margin: const EdgeInsets.symmetric(
@@ -314,66 +348,16 @@ class MainState extends State<Main> {
                                               getEventDisplayText(
                                                   highestEvent)[0],
                                               style: const TextStyle(
-                                                color: Colors.red,
+                                                color: Colors.grey,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(
-                                                  formatTime(highestIgt!),
-                                                  style: const TextStyle(
-                                                    color: Colors.grey,
-                                                    fontStyle: FontStyle.italic,
-                                                  ),
-                                                ),
-                                                Row(
-                                                  children: [
-                                                    const SizedBox(width: 8),
-                                                    if (itemData?[
-                                                            'minecraft:ender_pearl'] !=
-                                                        null) ...[
-                                                      const SizedBox(width: 8),
-                                                      Image.asset(
-                                                        'assets/icons/ender_pearl.png',
-                                                        width: 16,
-                                                        height: 16,
-                                                      ),
-                                                      const SizedBox(width: 4),
-                                                      Text(
-                                                        itemData[
-                                                                'minecraft:ender_pearl']
-                                                            .toString(),
-                                                        style: const TextStyle(
-                                                          color: Colors.grey,
-                                                        ),
-                                                      )
-                                                    ],
-                                                    if (itemData?[
-                                                            'minecraft:blaze_rod'] !=
-                                                        null) ...[
-                                                      const SizedBox(width: 8),
-                                                      Image.asset(
-                                                        'assets/icons/blaze_rod.png',
-                                                        width: 16,
-                                                        height: 16,
-                                                      ),
-                                                      const SizedBox(width: 4),
-                                                      Text(
-                                                        itemData[
-                                                                'minecraft:blaze_rod']
-                                                            .toString(),
-                                                        style: const TextStyle(
-                                                          color: Colors.grey,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ],
-                                                ),
-                                              ],
+                                            Text(
+                                              formatTime(highestIgt!),
+                                              style: const TextStyle(
+                                                color: Colors.grey,
+                                                fontStyle: FontStyle.italic,
+                                              ),
                                             ),
                                           ],
                                         ],
