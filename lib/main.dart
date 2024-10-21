@@ -19,19 +19,19 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       darkTheme: ThemeData.dark(),
       themeMode: ThemeMode.system,
-      home: const MyHomePage(),
+      home: const Main(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
+class Main extends StatefulWidget {
+  const Main({super.key});
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  MainState createState() => MainState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class MainState extends State<Main> {
   static const platform = MethodChannel('com.example.pace_alert/service');
 
   List<dynamic> _data = [];
@@ -40,7 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Map<String, Set<String>> notifiedEventIds = {};
   Set<int> sentNotificationIds = {};
   bool _isLiveOnly = false;
-  final String currentVersion = '1.1.1';
+  final String currentVersion = '1.1.2';
   Map<String, String>? _updateInfo;
   bool _isUpdateChecked = false;
 
@@ -127,16 +127,6 @@ class _MyHomePageState extends State<MyHomePage> {
     _timer?.cancel();
     super.dispose();
   }
-
-  final Map<String, int> eventPriority = {
-    'rsg.credits': 1,
-    'rsg.enter_end': 2,
-    'rsg.enter_stronghold': 3,
-    'rsg.first_portal': 4,
-    'rsg.enter_fortress': 5,
-    'rsg.enter_bastion': 6,
-    'rsg.enter_nether': 7,
-  };
 
   List<String> getEventDisplayText(String eventId) {
     switch (eventId) {
@@ -258,57 +248,19 @@ class _MyHomePageState extends State<MyHomePage> {
                                   var eventList =
                                       item['eventList'] as List<dynamic>?;
 
-                                  String? highestPriorityEvent;
+                                  String? highestEvent;
                                   int? highestIgt;
-
-                                  bool isBastionUsed = false;
-                                  bool isFortressUsed = false;
 
                                   if (eventList != null) {
                                     for (var event in eventList) {
                                       String eventId = event['eventId'];
                                       int eventIgt = event['igt'];
 
-                                      if (eventPriority.containsKey(eventId)) {
-                                        if (eventId == 'rsg.enter_bastion') {
-                                          isBastionUsed = true;
-                                        } else if (eventId ==
-                                            'rsg.enter_fortress') {
-                                          isFortressUsed = true;
-                                        }
-
-                                        if (highestPriorityEvent == null ||
-                                            eventPriority[eventId]! <
-                                                eventPriority[
-                                                    highestPriorityEvent]!) {
-                                          highestPriorityEvent = eventId;
-                                          highestIgt = eventIgt;
-                                        }
+                                      if (highestIgt == null ||
+                                          eventIgt > highestIgt) {
+                                        highestEvent = eventId;
+                                        highestIgt = eventIgt;
                                       }
-                                    }
-
-                                    if (highestPriorityEvent ==
-                                            'rsg.enter_bastion' &&
-                                        isFortressUsed) {
-                                      highestPriorityEvent =
-                                          'rsg.enter_fortress';
-                                      highestIgt = eventList.firstWhere(
-                                        (event) =>
-                                            event['eventId'] ==
-                                            'rsg.enter_fortress',
-                                        orElse: () => null,
-                                      )?['igt'];
-                                    } else if (highestPriorityEvent ==
-                                            'rsg.enter_fortress' &&
-                                        isBastionUsed) {
-                                      highestPriorityEvent =
-                                          'rsg.enter_bastion';
-                                      highestIgt = eventList.firstWhere(
-                                        (event) =>
-                                            event['eventId'] ==
-                                            'rsg.enter_bastion',
-                                        orElse: () => null,
-                                      )?['igt'];
                                     }
                                   }
 
@@ -323,10 +275,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                     elevation: 4,
                                     child: ListTile(
                                       contentPadding: const EdgeInsets.all(16),
-                                      leading: highestPriorityEvent != null
+                                      leading: highestEvent != null
                                           ? Image.asset(
                                               getEventDisplayText(
-                                                  highestPriorityEvent)[1],
+                                                  highestEvent)[1],
                                               width: 24,
                                               height: 24,
                                             )
@@ -353,10 +305,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          if (highestPriorityEvent != null) ...[
+                                          if (highestEvent != null) ...[
                                             Text(
                                               getEventDisplayText(
-                                                  highestPriorityEvent)[0],
+                                                  highestEvent)[0],
                                               style: const TextStyle(
                                                 color: Colors.red,
                                                 fontWeight: FontWeight.bold,
