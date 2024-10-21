@@ -40,7 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Map<String, Set<String>> notifiedEventIds = {};
   Set<int> sentNotificationIds = {};
   bool _isLiveOnly = false;
-  final String currentVersion = '1.1.0';
+  final String currentVersion = '1.1.1';
   Map<String, String>? _updateInfo;
   bool _isUpdateChecked = false;
 
@@ -190,13 +190,24 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             AppBar(
               title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Current Pace'),
-                  const SizedBox(width: 8),
-                  Image.asset(
-                    'assets/icons/paceman.png',
-                    width: 24,
-                    height: 24,
+                  Row(
+                    children: [
+                      const Text('Current Pace'),
+                      const SizedBox(width: 8),
+                      Image.asset(
+                        'assets/icons/paceman.png',
+                        width: 24,
+                        height: 24,
+                      ),
+                    ],
+                  ),
+                  Text(
+                    'v$currentVersion',
+                    style: const TextStyle(
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
