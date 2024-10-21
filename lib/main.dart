@@ -232,7 +232,11 @@ class MainState extends State<Main> {
 
                               final filteredData = _data.where((item) {
                                 final liveAccount = item['user']['liveAccount'];
-                                return !_isLiveOnly || liveAccount != null;
+                                final isHidden = item['isHidden'] ?? false;
+                                final isCheated = item['isCheated'] ?? false;
+                                return (!_isLiveOnly || liveAccount != null) &&
+                                    !isHidden &&
+                                    !isCheated;
                               }).toList();
 
                               if (filteredData.isEmpty) {
