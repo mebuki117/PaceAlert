@@ -40,6 +40,9 @@ class _MyHomePageState extends State<MyHomePage> {
   Map<String, Set<String>> notifiedEventIds = {};
   Set<int> sentNotificationIds = {};
   bool _isLiveOnly = false;
+  final String currentVersion = '1.1.0';
+  Map<String, String>? _updateInfo;
+  bool _isUpdateChecked = false;
 
   @override
   void initState() {
@@ -48,6 +51,43 @@ class _MyHomePageState extends State<MyHomePage> {
     fetchData();
     _timer = Timer.periodic(const Duration(seconds: 20), (timer) {
       fetchData();
+    });
+    _checkForUpdate();
+  }
+
+  bool _isNewerVersion(String current, String latest) {
+    List<int> currentParts = current.split('.').map(int.parse).toList();
+    List<int> latestParts = latest.split('.').map(int.parse).toList();
+
+    for (int i = 0; i < currentParts.length; i++) {
+      if (latestParts[i] > currentParts[i]) return true;
+      if (latestParts[i] < currentParts[i]) return false;
+    }
+
+    return false;
+  }
+
+  Future<void> _checkForUpdate() async {
+    final response = await http.get(Uri.parse(
+        'https://raw.githubusercontent.com/mebuki117/PaceAlert/refs/heads/main/meta.json'));
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonData = json.decode(response.body);
+      final String latestVersion = jsonData['latest'];
+      final String latestDownloadLink = jsonData['latest_download'];
+
+      if (_isNewerVersion(currentVersion, latestVersion)) {
+        setState(() {
+          _updateInfo = {
+            'latest': latestVersion,
+            'latest_download': latestDownloadLink,
+          };
+        });
+      }
+    }
+
+    setState(() {
+      _isUpdateChecked = true;
     });
   }
 
@@ -101,7 +141,7 @@ class _MyHomePageState extends State<MyHomePage> {
   List<String> getEventDisplayText(String eventId) {
     switch (eventId) {
       case 'rsg.credits':
-        return ['Credits', 'assets/icons/credits.png'];
+        return ['Finish', 'assets/icons/credits.png'];
       case 'rsg.enter_end':
         return ['Enter End', 'assets/icons/end.png'];
       case 'rsg.enter_stronghold':
@@ -122,222 +162,267 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
+      body: SafeArea(
+        child: Column(
           children: [
-            const Text('Current Pace'),
-            const SizedBox(width: 8),
-            Image.asset(
-              'assets/icons/paceman.png',
-              width: 24,
-              height: 24,
+            if (_isUpdateChecked && _updateInfo != null)
+              Container(
+                width: double.infinity,
+                color: Colors.amber,
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  children: [
+                    Align(
+                      alignment: Alignment.center,
+                      child: TextButton(
+                        onPressed: () {
+                          launchUrl(
+                              Uri.parse(_updateInfo!['latest_download']!));
+                        },
+                        child: Text(
+                          'New update available: v${_updateInfo!['latest']}',
+                          style: const TextStyle(color: Colors.blue),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            AppBar(
+              title: Row(
+                children: [
+                  const Text('Current Pace'),
+                  const SizedBox(width: 8),
+                  Image.asset(
+                    'assets/icons/paceman.png',
+                    width: 24,
+                    height: 24,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Column(
+                children: <Widget>[
+                  SwitchListTile(
+                    title: const Text('Live Only'),
+                    value: _isLiveOnly,
+                    onChanged: (bool value) {
+                      setState(() {
+                        _isLiveOnly = value;
+                      });
+                    },
+                  ),
+                  Expanded(
+                    child: _data.isEmpty
+                        ? const Center(
+                            child: Text('No one is currently on pace...'),
+                          )
+                        : Builder(
+                            builder: (context) {
+                              final gameVersionCheck = _data.any(
+                                  (item) => item['gameVersion'] == '1.16.1');
+
+                              if (!gameVersionCheck) {
+                                return const Center(
+                                  child: Text('No one is currently on pace...'),
+                                );
+                              }
+
+                              final filteredData = _data.where((item) {
+                                final liveAccount = item['user']['liveAccount'];
+                                return !_isLiveOnly || liveAccount != null;
+                              }).toList();
+
+                              if (filteredData.isEmpty) {
+                                return const Center(
+                                  child: Text('No one is currently on pace...'),
+                                );
+                              }
+
+                              return ListView.builder(
+                                itemCount: filteredData.length,
+                                itemBuilder: (context, index) {
+                                  var item = filteredData[index];
+                                  var eventList =
+                                      item['eventList'] as List<dynamic>?;
+
+                                  String? highestPriorityEvent;
+                                  int? highestIgt;
+
+                                  bool isBastionUsed = false;
+                                  bool isFortressUsed = false;
+
+                                  if (eventList != null) {
+                                    for (var event in eventList) {
+                                      String eventId = event['eventId'];
+                                      int eventIgt = event['igt'];
+
+                                      if (eventPriority.containsKey(eventId)) {
+                                        if (eventId == 'rsg.enter_bastion') {
+                                          isBastionUsed = true;
+                                        } else if (eventId ==
+                                            'rsg.enter_fortress') {
+                                          isFortressUsed = true;
+                                        }
+
+                                        if (highestPriorityEvent == null ||
+                                            eventPriority[eventId]! <
+                                                eventPriority[
+                                                    highestPriorityEvent]!) {
+                                          highestPriorityEvent = eventId;
+                                          highestIgt = eventIgt;
+                                        }
+                                      }
+                                    }
+
+                                    if (highestPriorityEvent ==
+                                            'rsg.enter_bastion' &&
+                                        isFortressUsed) {
+                                      highestPriorityEvent =
+                                          'rsg.enter_fortress';
+                                      highestIgt = eventList.firstWhere(
+                                        (event) =>
+                                            event['eventId'] ==
+                                            'rsg.enter_fortress',
+                                        orElse: () => null,
+                                      )?['igt'];
+                                    } else if (highestPriorityEvent ==
+                                            'rsg.enter_fortress' &&
+                                        isBastionUsed) {
+                                      highestPriorityEvent =
+                                          'rsg.enter_bastion';
+                                      highestIgt = eventList.firstWhere(
+                                        (event) =>
+                                            event['eventId'] ==
+                                            'rsg.enter_bastion',
+                                        orElse: () => null,
+                                      )?['igt'];
+                                    }
+                                  }
+
+                                  final liveAccount =
+                                      item['user']['liveAccount'];
+                                  final itemData =
+                                      item['itemData']?['estimatedCounts'];
+
+                                  return Card(
+                                    margin: const EdgeInsets.symmetric(
+                                        vertical: 8, horizontal: 16),
+                                    elevation: 4,
+                                    child: ListTile(
+                                      contentPadding: const EdgeInsets.all(16),
+                                      leading: highestPriorityEvent != null
+                                          ? Image.asset(
+                                              getEventDisplayText(
+                                                  highestPriorityEvent)[1],
+                                              width: 24,
+                                              height: 24,
+                                            )
+                                          : const Icon(Icons.access_time,
+                                              color: Colors.blue),
+                                      title: liveAccount != null
+                                          ? GestureDetector(
+                                              onTap: () {
+                                                launchUrl(Uri.parse(
+                                                    'https://www.twitch.tv/$liveAccount'));
+                                              },
+                                              child: Text(
+                                                item['nickname'] ?? 'No Name',
+                                                style: const TextStyle(
+                                                  color: Colors.blue,
+                                                  decoration:
+                                                      TextDecoration.underline,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            )
+                                          : Text(item['nickname'] ?? 'No Name'),
+                                      subtitle: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          if (highestPriorityEvent != null) ...[
+                                            Text(
+                                              getEventDisplayText(
+                                                  highestPriorityEvent)[0],
+                                              style: const TextStyle(
+                                                color: Colors.red,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Text(
+                                                  formatTime(highestIgt!),
+                                                  style: const TextStyle(
+                                                    color: Colors.grey,
+                                                    fontStyle: FontStyle.italic,
+                                                  ),
+                                                ),
+                                                Row(
+                                                  children: [
+                                                    const SizedBox(width: 8),
+                                                    if (itemData?[
+                                                            'minecraft:ender_pearl'] !=
+                                                        null) ...[
+                                                      const SizedBox(width: 8),
+                                                      Image.asset(
+                                                        'assets/icons/ender_pearl.png',
+                                                        width: 16,
+                                                        height: 16,
+                                                      ),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        itemData[
+                                                                'minecraft:ender_pearl']
+                                                            .toString(),
+                                                        style: const TextStyle(
+                                                          color: Colors.grey,
+                                                        ),
+                                                      )
+                                                    ],
+                                                    if (itemData?[
+                                                            'minecraft:blaze_rod'] !=
+                                                        null) ...[
+                                                      const SizedBox(width: 8),
+                                                      Image.asset(
+                                                        'assets/icons/blaze_rod.png',
+                                                        width: 16,
+                                                        height: 16,
+                                                      ),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        itemData[
+                                                                'minecraft:blaze_rod']
+                                                            .toString(),
+                                                        style: const TextStyle(
+                                                          color: Colors.grey,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-      ),
-      body: Column(
-        children: <Widget>[
-          SwitchListTile(
-            title: const Text('Live Only'),
-            value: _isLiveOnly,
-            onChanged: (bool value) {
-              setState(() {
-                _isLiveOnly = value;
-              });
-            },
-          ),
-          Expanded(
-            child: _data.isEmpty
-                ? const Center(
-                    child: Text('No one is currently on pace...'),
-                  )
-                : Builder(
-                    builder: (context) {
-                      final gameVersionCheck =
-                          _data.any((item) => item['gameVersion'] == '1.16.1');
-
-                      if (!gameVersionCheck) {
-                        return const Center(
-                          child: Text('No one is currently on pace...'),
-                        );
-                      }
-
-                      final filteredData = _data.where((item) {
-                        final liveAccount = item['user']['liveAccount'];
-                        return !_isLiveOnly || liveAccount != null;
-                      }).toList();
-
-                      if (filteredData.isEmpty) {
-                        return const Center(
-                          child: Text('No one is currently on pace...'),
-                        );
-                      }
-
-                      return ListView.builder(
-                        itemCount: filteredData.length,
-                        itemBuilder: (context, index) {
-                          var item = filteredData[index];
-                          var eventList = item['eventList'] as List<dynamic>?;
-
-                          String? highestPriorityEvent;
-                          int? highestIgt;
-
-                          bool isBastionUsed = false;
-                          bool isFortressUsed = false;
-
-                          if (eventList != null) {
-                            for (var event in eventList) {
-                              String eventId = event['eventId'];
-                              int eventIgt = event['igt'];
-
-                              if (eventPriority.containsKey(eventId)) {
-                                if (eventId == 'rsg.enter_bastion') {
-                                  isBastionUsed = true;
-                                } else if (eventId == 'rsg.enter_fortress') {
-                                  isFortressUsed = true;
-                                }
-
-                                if (highestPriorityEvent == null ||
-                                    eventPriority[eventId]! <
-                                        eventPriority[highestPriorityEvent]!) {
-                                  highestPriorityEvent = eventId;
-                                  highestIgt = eventIgt;
-                                }
-                              }
-                            }
-
-                            if (highestPriorityEvent == 'rsg.enter_bastion' &&
-                                isFortressUsed) {
-                              highestPriorityEvent = 'rsg.enter_fortress';
-                              highestIgt = eventList.firstWhere(
-                                (event) =>
-                                    event['eventId'] == 'rsg.enter_fortress',
-                                orElse: () => null,
-                              )?['igt'];
-                            } else if (highestPriorityEvent ==
-                                    'rsg.enter_fortress' &&
-                                isBastionUsed) {
-                              highestPriorityEvent = 'rsg.enter_bastion';
-                              highestIgt = eventList.firstWhere(
-                                (event) =>
-                                    event['eventId'] == 'rsg.enter_bastion',
-                                orElse: () => null,
-                              )?['igt'];
-                            }
-                          }
-
-                          final liveAccount = item['user']['liveAccount'];
-                          final itemData = item['itemData']?['estimatedCounts'];
-
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                                vertical: 8, horizontal: 16),
-                            elevation: 4,
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.all(16),
-                              leading: highestPriorityEvent != null
-                                  ? Image.asset(
-                                      getEventDisplayText(
-                                          highestPriorityEvent)[1],
-                                      width: 24,
-                                      height: 24,
-                                    )
-                                  : const Icon(Icons.access_time,
-                                      color: Colors.blue),
-                              title: liveAccount != null
-                                  ? GestureDetector(
-                                      onTap: () {
-                                        launchUrl(Uri.parse(
-                                            'https://www.twitch.tv/$liveAccount'));
-                                      },
-                                      child: Text(
-                                        item['nickname'] ?? 'No Name',
-                                        style: const TextStyle(
-                                          color: Colors.blue,
-                                          decoration: TextDecoration.underline,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    )
-                                  : Text(item['nickname'] ?? 'No Name'),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (highestPriorityEvent != null) ...[
-                                    Text(
-                                      getEventDisplayText(
-                                          highestPriorityEvent)[0],
-                                      style: const TextStyle(
-                                        color: Colors.red,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          formatTime(highestIgt!),
-                                          style: const TextStyle(
-                                            color: Colors.grey,
-                                            fontStyle: FontStyle.italic,
-                                          ),
-                                        ),
-                                        Row(
-                                          children: [
-                                            const SizedBox(width: 8),
-                                            if (itemData?[
-                                                    'minecraft:ender_pearl'] !=
-                                                null) ...[
-                                              const SizedBox(width: 8),
-                                              Image.asset(
-                                                'assets/icons/ender_pearl.png',
-                                                width: 16,
-                                                height: 16,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                itemData[
-                                                        'minecraft:ender_pearl']
-                                                    .toString(),
-                                                style: const TextStyle(
-                                                  color: Colors.grey,
-                                                ),
-                                              )
-                                            ],
-                                            if (itemData?[
-                                                    'minecraft:blaze_rod'] !=
-                                                null) ...[
-                                              const SizedBox(width: 8),
-                                              Image.asset(
-                                                'assets/icons/blaze_rod.png',
-                                                width: 16,
-                                                height: 16,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                itemData['minecraft:blaze_rod']
-                                                    .toString(),
-                                                style: const TextStyle(
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-          ),
-        ],
       ),
     );
   }
