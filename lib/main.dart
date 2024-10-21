@@ -40,7 +40,7 @@ class MainState extends State<Main> {
   Map<String, Set<String>> notifiedEventIds = {};
   Set<int> sentNotificationIds = {};
   bool _isLiveOnly = false;
-  final String currentVersion = '1.1.2';
+  final String currentVersion = '1.2.0';
   Map<String, String>? _updateInfo;
   bool _isUpdateChecked = false;
 
