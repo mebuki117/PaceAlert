@@ -299,10 +299,12 @@ class MainState extends State<Main> {
                               return ListView.builder(
                                 itemCount: prioritizedItems.length,
                                 itemBuilder: (context, index) {
-                                  var itemData = prioritizedItems[index];
-                                  var item = itemData['item'];
-                                  var highestEvent = itemData['highestEvent'];
-                                  var highestIgt = itemData['highestIgt'];
+                                  var data = prioritizedItems[index];
+                                  var item = data['item'];
+                                  final itemData =
+                                      item['itemData']?['estimatedCounts'];
+                                  var highestEvent = data['highestEvent'];
+                                  var highestIgt = data['highestIgt'];
 
                                   final liveAccount =
                                       item['user']['liveAccount'];
@@ -348,16 +350,66 @@ class MainState extends State<Main> {
                                               getEventDisplayText(
                                                   highestEvent)[0],
                                               style: const TextStyle(
-                                                color: Colors.grey,
+                                                color: Colors.red,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                            Text(
-                                              formatTime(highestIgt!),
-                                              style: const TextStyle(
-                                                color: Colors.grey,
-                                                fontStyle: FontStyle.italic,
-                                              ),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Text(
+                                                  formatTime(highestIgt!),
+                                                  style: const TextStyle(
+                                                    color: Colors.grey,
+                                                    fontStyle: FontStyle.italic,
+                                                  ),
+                                                ),
+                                                Row(
+                                                  children: [
+                                                    const SizedBox(width: 8),
+                                                    if (itemData?[
+                                                            'minecraft:ender_pearl'] !=
+                                                        null) ...[
+                                                      const SizedBox(width: 8),
+                                                      Image.asset(
+                                                        'assets/icons/ender_pearl.png',
+                                                        width: 16,
+                                                        height: 16,
+                                                      ),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        itemData[
+                                                                'minecraft:ender_pearl']
+                                                            .toString(),
+                                                        style: const TextStyle(
+                                                          color: Colors.grey,
+                                                        ),
+                                                      )
+                                                    ],
+                                                    if (itemData?[
+                                                            'minecraft:blaze_rod'] !=
+                                                        null) ...[
+                                                      const SizedBox(width: 8),
+                                                      Image.asset(
+                                                        'assets/icons/blaze_rod.png',
+                                                        width: 16,
+                                                        height: 16,
+                                                      ),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        itemData[
+                                                                'minecraft:blaze_rod']
+                                                            .toString(),
+                                                        style: const TextStyle(
+                                                          color: Colors.grey,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                              ],
                                             ),
                                           ],
                                         ],
