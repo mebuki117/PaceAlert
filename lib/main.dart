@@ -350,7 +350,7 @@ class MainState extends State<Main> {
                                               getEventDisplayText(
                                                   highestEvent)[0],
                                               style: const TextStyle(
-                                                color: Colors.red,
+                                                color: Colors.grey,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
