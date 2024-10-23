@@ -49,7 +49,7 @@ class MainState extends State<Main> {
 
   int _selectedIndex = 0;
   int _selectedTabIndex = 0;
-  String _selectedType = 'Enter';
+  String _selectedType = 'Qty';
   String _selectedDays = '30';
   String _selectedLimit = '10';
 
@@ -136,7 +136,7 @@ class MainState extends State<Main> {
           _statsdata = json.decode(response.body);
         });
         log('Stats Data fetched successfully: ${_statsdata.length} items.');
-        log('send point: ${endpoint}');
+        log('end point: ${endpoint}');
       } else {
         throw Exception('Failed to load stats data');
       }
@@ -328,7 +328,7 @@ class MainState extends State<Main> {
                         DropdownButton<String>(
                           value: _selectedType,
                           items: [
-                            'Enter',
+                            'Qty',
                             'Average',
                             'Fastest',
                           ].map((String type) {
@@ -695,24 +695,41 @@ class MainState extends State<Main> {
       itemBuilder: (context, index) {
         final statsItem = _statsdata[index];
 
+        final int mainValue = statsItem['value'].floor();
         final int qtyValue = statsItem['qty'];
         final int avgValue = statsItem['avg'].floor();
+        final formattedmainTime = formatTime(mainValue, includeDecimal: true);
         final formattedTime = formatTime(avgValue, includeDecimal: true);
 
         final String selectedType = _selectedType;
 
-        final Color qtyColor =
-            (selectedType == 'Average' || selectedType == 'Fastest')
-                ? Colors.grey
-                : (Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : Colors.black);
+        Color secondColor = Colors.black;
+        Color firstColor = Colors.black;
+        String firstText = '';
+        String secondText = '';
 
-        final Color avgColor = (selectedType == 'Enter')
-            ? Colors.grey
-            : (Theme.of(context).brightness == Brightness.dark
-                ? Colors.white
-                : Colors.black);
+        if (selectedType == 'Qty') {
+          firstText = '$qtyValue';
+          secondText = formattedTime;
+          firstColor = (Theme.of(context).brightness == Brightness.dark)
+              ? Colors.white
+              : Colors.black;
+          secondColor = Colors.grey;
+        } else if (selectedType == 'Average') {
+          firstText = formattedTime;
+          secondText = '$qtyValue';
+          secondColor = Colors.grey;
+          firstColor = (Theme.of(context).brightness == Brightness.dark)
+              ? Colors.white
+              : Colors.black;
+        } else if (selectedType == 'Fastest') {
+          firstText = formattedmainTime;
+          secondText = '$qtyValue';
+          secondColor = Colors.grey;
+          firstColor = (Theme.of(context).brightness == Brightness.dark)
+              ? Colors.white
+              : Colors.black;
+        }
 
         final String playerName = statsItem['name'] ?? 'No Name';
         final String playerUrl = 'https://paceman.gg/stats/player/$playerName';
@@ -741,16 +758,16 @@ class MainState extends State<Main> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '$qtyValue',
+                      firstText,
                       style: TextStyle(
-                        color: qtyColor,
+                        color: firstColor,
                         fontSize: 12,
                       ),
                     ),
                     Text(
-                      formattedTime,
+                      secondText,
                       style: TextStyle(
-                        color: avgColor,
+                        color: secondColor,
                         fontSize: 12,
                       ),
                     ),
