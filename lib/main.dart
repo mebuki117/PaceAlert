@@ -34,7 +34,7 @@ class Main extends StatefulWidget {
 class MainState extends State<Main> {
   static const platform = MethodChannel('com.example.pace_alert/service');
 
-  final String currentVersion = '1.3.0';
+  final String currentVersion = '1.3.1';
   Map<String, String>? _updateInfo;
   bool _isUpdateChecked = false;
 
