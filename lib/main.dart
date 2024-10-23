@@ -47,7 +47,7 @@ class MainState extends State<Main> {
   Set<int> sentNotificationIds = {};
   bool _isLiveOnly = false;
 
-  int _selectedIndex = 0;
+  int _selectedIndex = 1;
   int _selectedTabIndex = 0;
   String _selectedType = 'Qty';
   String _selectedDays = '30';
@@ -136,7 +136,7 @@ class MainState extends State<Main> {
           _statsdata = json.decode(response.body);
         });
         log('Stats Data fetched successfully: ${_statsdata.length} items.');
-        log('end point: ${endpoint}');
+        log('end point: $endpoint');
       } else {
         throw Exception('Failed to load stats data');
       }
@@ -218,7 +218,7 @@ class MainState extends State<Main> {
     'assets/icons/credits.png',
   ];
 
-  void _fetchDataForCurrentTab(int index) {
+  void _fetchDataForCurrentTab(int index) async {
     String category = '';
 
     switch (index) {
@@ -277,8 +277,19 @@ class MainState extends State<Main> {
         limitValue = '10';
     }
 
-    fetchStatsData(
+    const snackBar = SnackBar(
+      content: Text('Fetching data...'),
+      duration: Duration(days: 365),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+    await fetchStatsData(
         'getLeaderboard?category=$category&type=${_selectedType == 'Qty' ? 'count' : _selectedType.toLowerCase()}&days=$daysValue&limit=$limitValue');
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    }
   }
 
   @override
@@ -289,7 +300,7 @@ class MainState extends State<Main> {
           length: _tabs.length,
           child: Column(
             children: [
-              if (_selectedIndex == 1)
+              if (_selectedIndex == 0)
                 Column(
                   children: [
                     Row(
@@ -402,9 +413,9 @@ class MainState extends State<Main> {
                   ],
                 ),
               Expanded(
-                child: _selectedIndex == 0
+                child: _selectedIndex == 1
                     ? _buildCurrentPaceView()
-                    : _selectedIndex == 1
+                    : _selectedIndex == 0
                         ? _buildStatsView()
                         : _buildSettingsView(),
               ),
@@ -415,12 +426,12 @@ class MainState extends State<Main> {
       bottomNavigationBar: BottomNavigationBar(
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.directions_run),
-            label: 'Current Pace',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.bar_chart),
             label: 'Stats',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.directions_run),
+            label: 'Current Pace',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
