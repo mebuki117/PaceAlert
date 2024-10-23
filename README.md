@@ -14,6 +14,17 @@ WRペースを通知する**Android**アプリです。
 - sub 6:11 Enter End
 - sub 7:01.494 Finish (sub drip)
 
+## 機能
+### Current Pace
+現在のペースが一覧として表示されます。
+
+### Stats
+PaceManのStatsを簡易的に表示します。  
+ユーザー名のタップで、ユーザーのStatsがブラウザで開かれます。
+
+### Settings
+設定ですが現状機能はありません。
+
 ## 備考
 - アプリのライト/ダークモードは、システムのモードに依存します
 - 20秒に一度、PaceMan APIから情報を取得します
@@ -24,7 +35,8 @@ WRペースを通知する**Android**アプリです。
 - アイデア：[まさ](https://x.com/masa_ERC/status/1846322439976112189)
 
 ## スクリーンショット
-<img src="https://github.com/user-attachments/assets/ded5abc5-da56-4801-9291-69a5ab03658c" width="25%" />
+<img src="https://github.com/user-attachments/assets/bb86ffa8-4733-4164-93d2-04a2c0271b2b" width="25%" />
+<img src="https://github.com/user-attachments/assets/1aa7a899-332a-4024-a6e1-4dbb8bb2dd50" width="25%" />
 
 ## 開発環境
 - Android 11.0 (API 30)
