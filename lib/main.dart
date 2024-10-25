@@ -520,6 +520,9 @@ class MainState extends State<Main> {
             DropdownMenuItem(value: '24', child: Text('24 hours')),
             DropdownMenuItem(value: '168', child: Text('7 days')),
             DropdownMenuItem(value: '720', child: Text('30 days')),
+            DropdownMenuItem(value: '2160', child: Text('3 months')),
+            DropdownMenuItem(value: '4320', child: Text('6 months')),
+            DropdownMenuItem(value: '8640', child: Text('12 months')),
             DropdownMenuItem(value: '239976', child: Text('Lifetime')),
           ],
           onChanged: (String? newValue) {
