@@ -40,6 +40,8 @@ class MainState extends State<Main> {
 
   List<dynamic> _data = [];
   List<dynamic> _statsdata = [];
+  Map<String, dynamic> _userstatsdata = {};
+
   Timer? _timer;
 
   FlutterLocalNotificationsPlugin? flutterLocalNotificationsPlugin;
@@ -55,6 +57,12 @@ class MainState extends State<Main> {
 
   String defaultStats =
       'getLeaderboard?category=nether&type=count&days=30&limit=10';
+
+  TextEditingController _searchController = TextEditingController();
+
+  bool _isSearchMode = false;
+  String _searchDays = '720';
+  bool _searchStructure = true;
 
   @override
   void initState() {
@@ -126,16 +134,22 @@ class MainState extends State<Main> {
     }
   }
 
-  Future<void> fetchStatsData(String endpoint) async {
+  Future<void> fetchStatsData(String endpoint,
+      {bool isUserStats = false}) async {
     try {
       final response =
           await http.get(Uri.parse('https://paceman.gg/stats/api/$endpoint'));
 
       if (response.statusCode == 200) {
         setState(() {
-          _statsdata = json.decode(response.body);
+          if (isUserStats) {
+            _userstatsdata = json.decode(response.body);
+            log('User Stats Data fetched successfully: ${_userstatsdata.length} items.');
+          } else {
+            _statsdata = json.decode(response.body);
+            log('Stats Data fetched successfully: ${_statsdata.length} items.');
+          }
         });
-        log('Stats Data fetched successfully: ${_statsdata.length} items.');
         log('end point: $endpoint');
       } else {
         throw Exception('Failed to load stats data');
@@ -218,74 +232,83 @@ class MainState extends State<Main> {
     'assets/icons/credits.png',
   ];
 
-  void _fetchDataForCurrentTab(int index) async {
+  final Map<String, String> _statKeyDisplayNames = {
+    'nether': 'Nether Enters',
+    'bastion': 'Bastion',
+    'fortress': 'Fortress',
+    'first_structure': 'First Structure',
+    'second_structure': 'Second Structure',
+    'first_portal': 'First Portal',
+    'stronghold': 'Stronghold',
+    'end': 'End Enter',
+    'finish': 'Finish',
+  };
+
+  void _fetchStatsData({required int index, bool isSessionData = false}) async {
     String category = '';
 
-    switch (index) {
-      case 0:
-        category = 'nether';
-        break;
-      case 1:
-        category = 'first_structure';
-        break;
-      case 2:
-        category = 'second_structure';
-        break;
-      case 3:
-        category = 'first_portal';
-        break;
-      case 4:
-        category = 'stronghold';
-        break;
-      case 5:
-        category = 'end';
-        break;
-      case 6:
-        category = 'finish';
-        break;
-      default:
-        category = 'nether';
+    if (!isSessionData) {
+      switch (index) {
+        case 0:
+          category = 'nether';
+          break;
+        case 1:
+          category = 'first_structure';
+          break;
+        case 2:
+          category = 'second_structure';
+          break;
+        case 3:
+          category = 'first_portal';
+          break;
+        case 4:
+          category = 'stronghold';
+          break;
+        case 5:
+          category = 'end';
+          break;
+        case 6:
+          category = 'finish';
+          break;
+        default:
+          category = 'nether';
+      }
+
+      String daysValue = _selectedDays == '1' ||
+              _selectedDays == '7' ||
+              _selectedDays == '30' ||
+              _selectedDays == '9999'
+          ? _selectedDays
+          : '30';
+
+      String limitValue = _selectedLimit == '10' || _selectedLimit == '30'
+          ? _selectedLimit
+          : '10';
+
+      const snackBar = SnackBar(
+        content: Text('Fetching data...'),
+        duration: Duration(days: 365),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+      await fetchStatsData(
+          'getLeaderboard?category=$category&type=${_selectedType == 'Qty' ? 'count' : _selectedType.toLowerCase()}&days=$daysValue&limit=$limitValue');
+    } else {
+      const snackBar = SnackBar(
+        content: Text('Fetching data...'),
+        duration: Duration(days: 365),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+      setState(() {
+        _userstatsdata = {};
+      });
+
+      String user = _searchController.text;
+      await fetchStatsData(
+          'getSessionStats?name=$user&hours=$_searchDays&hoursBetween=$_searchDays',
+          isUserStats: true);
     }
-
-    String daysValue;
-    switch (_selectedDays) {
-      case '1':
-        daysValue = '1';
-        break;
-      case '7':
-        daysValue = '7';
-        break;
-      case '30':
-        daysValue = '30';
-        break;
-      case '9999':
-        daysValue = '9999';
-        break;
-      default:
-        daysValue = '30';
-    }
-
-    String limitValue;
-    switch (_selectedLimit) {
-      case '10':
-        limitValue = '10';
-        break;
-      case '30':
-        limitValue = '30';
-        break;
-      default:
-        limitValue = '10';
-    }
-
-    const snackBar = SnackBar(
-      content: Text('Fetching data...'),
-      duration: Duration(days: 365),
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
-
-    await fetchStatsData(
-        'getLeaderboard?category=$category&type=${_selectedType == 'Qty' ? 'count' : _selectedType.toLowerCase()}&days=$daysValue&limit=$limitValue');
 
     if (mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -295,128 +318,65 @@ class MainState extends State<Main> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: _selectedIndex == 0
+          ? AppBar(
+              leading: _isSearchMode
+                  ? IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () {
+                        setState(() {
+                          _isSearchMode = false;
+                        });
+                      },
+                    )
+                  : Opacity(
+                      opacity: 0.0,
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back),
+                        onPressed: () {},
+                      ),
+                    ),
+              title: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        hintText: 'Search...',
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.search),
+                    onPressed: () {
+                      setState(() {
+                        _fetchStatsData(index: 0, isSessionData: true);
+                        _isSearchMode = true;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            )
+          : null,
       body: SafeArea(
         child: DefaultTabController(
           length: _tabs.length,
           child: Column(
             children: [
-              if (_selectedIndex == 0)
-                Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        DropdownButton<String>(
-                          value: _tabs[_selectedTabIndex],
-                          items: List.generate(_tabs.length, (index) {
-                            return DropdownMenuItem<String>(
-                              value: _tabs[index],
-                              child: Row(
-                                children: [
-                                  Image.asset(
-                                    _tabImages[index],
-                                    height: 24,
-                                    width: 24,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(_tabs[index]),
-                                ],
-                              ),
-                            );
-                          }),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedTabIndex = _tabs.indexOf(newValue!);
-                              _fetchDataForCurrentTab(_selectedTabIndex);
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        DropdownButton<String>(
-                          value: _selectedType,
-                          items: [
-                            'Qty',
-                            'Average',
-                            'Fastest',
-                          ].map((String type) {
-                            return DropdownMenuItem<String>(
-                              value: type,
-                              child: Text(
-                                type,
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedType = newValue!;
-                              _fetchDataForCurrentTab(_selectedTabIndex);
-                            });
-                          },
-                        ),
-                        DropdownButton<String>(
-                          value: _selectedDays,
-                          items: [
-                            '1',
-                            '7',
-                            '30',
-                            '9999',
-                          ].map((String day) {
-                            return DropdownMenuItem<String>(
-                              value: day,
-                              child: Text(
-                                day == '1'
-                                    ? '24 hours'
-                                    : day == '7'
-                                        ? '7 days'
-                                        : day == '30'
-                                            ? '30 days'
-                                            : 'Lifetime',
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedDays = newValue!;
-                              _fetchDataForCurrentTab(_selectedTabIndex);
-                            });
-                          },
-                        ),
-                        DropdownButton<String>(
-                          value: _selectedLimit,
-                          items: [
-                            '10',
-                            '30',
-                          ].map((String limit) {
-                            return DropdownMenuItem<String>(
-                              value: limit,
-                              child: Text(
-                                limit == '10' ? 'TOP 10' : 'TOP 30',
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedLimit = newValue!;
-                              _fetchDataForCurrentTab(_selectedTabIndex);
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+              if (_selectedIndex == 0 && !_isSearchMode) ...[
+                _buildDropdowns(),
+              ],
+              if (_isSearchMode) ...[
+                _buildSearchDropdowns(),
+              ],
               Expanded(
                 child: _selectedIndex == 1
                     ? _buildCurrentPaceView()
                     : _selectedIndex == 0
-                        ? _buildStatsView()
+                        ? _isSearchMode
+                            ? _buildSearchStatsView()
+                            : _buildStatsView()
                         : _buildSettingsView(),
               ),
             ],
@@ -445,6 +405,157 @@ class MainState extends State<Main> {
           });
         },
       ),
+    );
+  }
+
+  Widget _buildDropdowns() {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildDropdown<String>(
+              value: _tabs[_selectedTabIndex],
+              items: _tabs.map((tab) {
+                return DropdownMenuItem<String>(
+                  value: tab,
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        _tabImages[_tabs.indexOf(tab)],
+                        height: 24,
+                        width: 24,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(tab),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  _selectedTabIndex = _tabs.indexOf(newValue!);
+                  _fetchStatsData(index: _selectedTabIndex);
+                });
+              },
+            ),
+          ],
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildDropdown<String>(
+              value: _selectedType,
+              items: ['Qty', 'Average', 'Fastest'].map((type) {
+                return DropdownMenuItem<String>(
+                  value: type,
+                  child: Text(
+                    type,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  _selectedType = newValue!;
+                  _fetchStatsData(index: _selectedTabIndex);
+                });
+              },
+            ),
+            _buildDropdown<String>(
+              value: _selectedDays,
+              items: ['1', '7', '30', '9999'].map((day) {
+                return DropdownMenuItem<String>(
+                  value: day,
+                  child: Text(
+                    day == '1'
+                        ? '24 hours'
+                        : day == '7'
+                            ? '7 days'
+                            : day == '30'
+                                ? '30 days'
+                                : 'Lifetime',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  _selectedDays = newValue!;
+                  _fetchStatsData(index: _selectedTabIndex);
+                });
+              },
+            ),
+            _buildDropdown<String>(
+              value: _selectedLimit,
+              items: ['10', '30'].map((limit) {
+                return DropdownMenuItem<String>(
+                  value: limit,
+                  child: Text(
+                    limit == '10' ? 'TOP 10' : 'TOP 30',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  _selectedLimit = newValue!;
+                  _fetchStatsData(index: _selectedTabIndex);
+                });
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchDropdowns() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _buildDropdown<String>(
+          value: _searchDays,
+          items: const [
+            DropdownMenuItem(value: '24', child: Text('24 hours')),
+            DropdownMenuItem(value: '168', child: Text('7 days')),
+            DropdownMenuItem(value: '720', child: Text('30 days')),
+            DropdownMenuItem(value: '239976', child: Text('Lifetime')),
+          ],
+          onChanged: (String? newValue) {
+            setState(() {
+              _searchDays = newValue!;
+              _fetchStatsData(index: 0, isSessionData: true);
+            });
+          },
+        ),
+        _buildDropdown<bool>(
+          value: _searchStructure,
+          items: const [
+            DropdownMenuItem(
+                value: true, child: Text('First/Second Structure')),
+            DropdownMenuItem(value: false, child: Text('Bastion/Fortress')),
+          ],
+          onChanged: (bool? newValue) {
+            setState(() {
+              _searchStructure = newValue!;
+              _fetchStatsData(index: 0, isSessionData: true);
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdown<T>({
+    required T value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return DropdownButton<T>(
+      value: value,
+      items: items,
+      onChanged: onChanged,
     );
   }
 
@@ -781,6 +892,105 @@ class MainState extends State<Main> {
                         color: secondColor,
                         fontSize: 12,
                       ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSearchStatsView() {
+    if (_userstatsdata.isEmpty) {
+      return const Center(
+        child: Text('No stats available'),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: _userstatsdata.keys.length,
+      itemBuilder: (context, index) {
+        final statKey = _userstatsdata.keys.elementAt(index);
+        final statData = _userstatsdata[statKey];
+
+        if ((_searchStructure &&
+                (statKey == 'bastion' || statKey == 'fortress')) ||
+            (!_searchStructure &&
+                (statKey == 'first_structure' ||
+                    statKey == 'second_structure'))) {
+          return const SizedBox.shrink();
+        }
+
+        final displayName = _statKeyDisplayNames[statKey] ?? statKey;
+
+        int imageIndex;
+        switch (statKey) {
+          case 'nether':
+            imageIndex = 0;
+            break;
+          case 'bastion':
+            imageIndex = 1;
+            break;
+          case 'fortress':
+            imageIndex = 2;
+            break;
+          case 'first_structure':
+            imageIndex = 1;
+            break;
+          case 'second_structure':
+            imageIndex = 2;
+            break;
+          case 'first_portal':
+            imageIndex = 3;
+            break;
+          case 'stronghold':
+            imageIndex = 4;
+            break;
+          case 'end':
+            imageIndex = 5;
+            break;
+          case 'finish':
+            imageIndex = 6;
+            break;
+          default:
+            imageIndex = -1;
+        }
+
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          elevation: 4,
+          child: ListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.all(16),
+            leading: imageIndex != -1
+                ? Image.asset(
+                    _tabImages[imageIndex],
+                    height: 24,
+                    width: 24,
+                  )
+                : null,
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  displayName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Quantity: ${statData['count']}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    Text(
+                      'Average: ${statData['avg']}',
+                      style: const TextStyle(fontSize: 12),
                     ),
                   ],
                 ),
