@@ -34,7 +34,7 @@ class Main extends StatefulWidget {
 class MainState extends State<Main> {
   static const platform = MethodChannel('com.example.pace_alert/service');
 
-  final String currentVersion = '1.4.0';
+  final String currentVersion = '1.4.1';
   Map<String, String>? _updateInfo;
   bool _isUpdateChecked = false;
 
@@ -511,6 +511,8 @@ class MainState extends State<Main> {
   }
 
   Widget _buildSearchDropdowns() {
+    if (_selectedIndex != 0) return const SizedBox.shrink();
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
