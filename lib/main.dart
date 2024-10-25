@@ -519,13 +519,27 @@ class MainState extends State<Main> {
         _buildDropdown<String>(
           value: _searchDays,
           items: const [
-            DropdownMenuItem(value: '24', child: Text('24 hours')),
-            DropdownMenuItem(value: '168', child: Text('7 days')),
-            DropdownMenuItem(value: '720', child: Text('30 days')),
-            DropdownMenuItem(value: '2160', child: Text('3 months')),
-            DropdownMenuItem(value: '4320', child: Text('6 months')),
-            DropdownMenuItem(value: '8640', child: Text('12 months')),
-            DropdownMenuItem(value: '239976', child: Text('Lifetime')),
+            DropdownMenuItem(
+                value: '24',
+                child: Text('24 hours', style: TextStyle(fontSize: 14))),
+            DropdownMenuItem(
+                value: '168',
+                child: Text('7 days', style: TextStyle(fontSize: 14))),
+            DropdownMenuItem(
+                value: '720',
+                child: Text('30 days', style: TextStyle(fontSize: 14))),
+            DropdownMenuItem(
+                value: '2160',
+                child: Text('3 months', style: TextStyle(fontSize: 14))),
+            DropdownMenuItem(
+                value: '4320',
+                child: Text('6 months', style: TextStyle(fontSize: 14))),
+            DropdownMenuItem(
+                value: '8640',
+                child: Text('12 months', style: TextStyle(fontSize: 14))),
+            DropdownMenuItem(
+                value: '239976',
+                child: Text('Lifetime', style: TextStyle(fontSize: 14))),
           ],
           onChanged: (String? newValue) {
             setState(() {
@@ -538,8 +552,13 @@ class MainState extends State<Main> {
           value: _searchStructure,
           items: const [
             DropdownMenuItem(
-                value: true, child: Text('First/Second Structure')),
-            DropdownMenuItem(value: false, child: Text('Bastion/Fortress')),
+                value: true,
+                child: Text('First/Second Structure',
+                    style: TextStyle(fontSize: 14))),
+            DropdownMenuItem(
+                value: false,
+                child:
+                    Text('Bastion/Fortress', style: TextStyle(fontSize: 14))),
           ],
           onChanged: (bool? newValue) {
             setState(() {
