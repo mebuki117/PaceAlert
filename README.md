@@ -35,9 +35,9 @@ PaceManのStatsを表示します。
 - アイデア：[まさ](https://x.com/masa_ERC/status/1846322439976112189)
 
 ## スクリーンショット
-<img src="https://github.com/user-attachments/assets/aae1839b-333e-4dd7-89c7-50a8eadd6f57" width="25%" />
-<img src="https://github.com/user-attachments/assets/ea1f7589-f636-41ac-9272-01327f11cd16" width="25%" />
-<img src="https://github.com/user-attachments/assets/f8536a22-3cef-400b-9690-f81ef1c2a43c" width="25%" />
+<img src="https://github.com/user-attachments/assets/4dc36847-8547-4c49-af34-ee71fbb9c253" width="25%" />
+<img src="https://github.com/user-attachments/assets/1871d25f-09c5-439c-917b-adb0f98ef1a2" width="25%" />
+<img src="https://github.com/user-attachments/assets/149f03fb-8f2c-4cfb-bad6-d229183fbe47" width="25%" />
 
 ## 開発環境
 - Android 11.0 (API 30)
