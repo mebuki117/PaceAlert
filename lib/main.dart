@@ -31,10 +31,10 @@ class Main extends StatefulWidget {
   MainState createState() => MainState();
 }
 
-class MainState extends State<Main> {
+class MainState extends State<Main> with SingleTickerProviderStateMixin {
   static const platform = MethodChannel('com.example.pace_alert/service');
 
-  final String currentVersion = '1.4.1';
+  final String currentVersion = '1.4.2';
   Map<String, String>? _updateInfo;
   bool _isUpdateChecked = false;
 
@@ -64,6 +64,8 @@ class MainState extends State<Main> {
   String _searchDays = '720';
   bool _searchStructure = true;
 
+  late TabController _tabController;
+
   @override
   void initState() {
     super.initState();
@@ -74,6 +76,7 @@ class MainState extends State<Main> {
       fetchData();
     });
     _checkForUpdate();
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   bool _isNewerVersion(String current, String latest) {
@@ -175,9 +178,24 @@ class MainState extends State<Main> {
     }
   }
 
+  String _formatTimeWithoutLeadingZero(int value) {
+    // フォーマットされた時間を取得
+    String formatted = formatTime(value, includeDecimal: true);
+
+    // 時間部分のゼロを取り除く
+    final parts = formatted.split(':');
+    final hours = parts[0].startsWith('0')
+        ? parts[0].substring(1)
+        : parts[0]; // 頭のゼロを取り除く
+    final minutes = parts[1];
+
+    return '$hours:$minutes'; // フォーマットされた時間を返す
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -320,41 +338,12 @@ class MainState extends State<Main> {
     return Scaffold(
       appBar: _selectedIndex == 0
           ? AppBar(
-              leading: _isSearchMode
-                  ? IconButton(
-                      icon: const Icon(Icons.arrow_back),
-                      onPressed: () {
-                        setState(() {
-                          _isSearchMode = false;
-                        });
-                      },
-                    )
-                  : Opacity(
-                      opacity: 0.0,
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back),
-                        onPressed: () {},
-                      ),
-                    ),
-              title: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Search...',
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.search),
-                    onPressed: () {
-                      setState(() {
-                        _fetchStatsData(index: 0, isSessionData: true);
-                        _isSearchMode = true;
-                      });
-                    },
-                  ),
+              toolbarHeight: kToolbarHeight - 56, // デフォルト高さより縮小
+              bottom: TabBar(
+                controller: _tabController,
+                tabs: const [
+                  Tab(text: 'Leaderboard'),
+                  Tab(text: 'Search'),
                 ],
               ),
             )
@@ -364,21 +353,67 @@ class MainState extends State<Main> {
           length: _tabs.length,
           child: Column(
             children: [
-              if (_selectedIndex == 0 && !_isSearchMode) ...[
-                _buildDropdowns(),
+              if (_selectedIndex == 0) ...[
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      // Leaderboardタブの内容
+                      Column(
+                        children: [
+                          _buildDropdowns(),
+                          Expanded(child: _buildStatsView()),
+                        ],
+                      ),
+                      // Searchタブの内容
+                      Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              children: [
+                                Opacity(
+                                  opacity: 0.0, // 完全に透明
+                                  child: IconButton(
+                                    icon: const Icon(Icons.search), // 任意のアイコン
+                                    onPressed: () {},
+                                  ),
+                                ),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _searchController,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Search...',
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.search),
+                                  onPressed: () {
+                                    setState(() {
+                                      _fetchStatsData(
+                                          index: 0, isSessionData: true);
+                                      _isSearchMode = true;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          _buildSearchDropdowns(),
+                          Expanded(child: _buildSearchStatsView()),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                Expanded(
+                  child: _selectedIndex == 1
+                      ? _buildCurrentPaceView()
+                      : _buildSettingsView(),
+                ),
               ],
-              if (_isSearchMode) ...[
-                _buildSearchDropdowns(),
-              ],
-              Expanded(
-                child: _selectedIndex == 1
-                    ? _buildCurrentPaceView()
-                    : _selectedIndex == 0
-                        ? _isSearchMode
-                            ? _buildSearchStatsView()
-                            : _buildStatsView()
-                        : _buildSettingsView(),
-              ),
             ],
           ),
         ),
@@ -411,6 +446,7 @@ class MainState extends State<Main> {
   Widget _buildDropdowns() {
     return Column(
       children: [
+        const SizedBox(height: 16), // 上部の間隔を追加
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -513,59 +549,63 @@ class MainState extends State<Main> {
   Widget _buildSearchDropdowns() {
     if (_selectedIndex != 0) return const SizedBox.shrink();
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    return Column(
       children: [
-        _buildDropdown<String>(
-          value: _searchDays,
-          items: const [
-            DropdownMenuItem(
-                value: '24',
-                child: Text('24 hours', style: TextStyle(fontSize: 14))),
-            DropdownMenuItem(
-                value: '168',
-                child: Text('7 days', style: TextStyle(fontSize: 14))),
-            DropdownMenuItem(
-                value: '720',
-                child: Text('30 days', style: TextStyle(fontSize: 14))),
-            DropdownMenuItem(
-                value: '2160',
-                child: Text('3 months', style: TextStyle(fontSize: 14))),
-            DropdownMenuItem(
-                value: '4320',
-                child: Text('6 months', style: TextStyle(fontSize: 14))),
-            DropdownMenuItem(
-                value: '8640',
-                child: Text('12 months', style: TextStyle(fontSize: 14))),
-            DropdownMenuItem(
-                value: '239976',
-                child: Text('Lifetime', style: TextStyle(fontSize: 14))),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildDropdown<String>(
+              value: _searchDays,
+              items: const [
+                DropdownMenuItem(
+                    value: '24',
+                    child: Text('24 hours', style: TextStyle(fontSize: 14))),
+                DropdownMenuItem(
+                    value: '168',
+                    child: Text('7 days', style: TextStyle(fontSize: 14))),
+                DropdownMenuItem(
+                    value: '720',
+                    child: Text('30 days', style: TextStyle(fontSize: 14))),
+                DropdownMenuItem(
+                    value: '2160',
+                    child: Text('3 months', style: TextStyle(fontSize: 14))),
+                DropdownMenuItem(
+                    value: '4320',
+                    child: Text('6 months', style: TextStyle(fontSize: 14))),
+                DropdownMenuItem(
+                    value: '8640',
+                    child: Text('12 months', style: TextStyle(fontSize: 14))),
+                DropdownMenuItem(
+                    value: '239976',
+                    child: Text('Lifetime', style: TextStyle(fontSize: 14))),
+              ],
+              onChanged: (String? newValue) {
+                setState(() {
+                  _searchDays = newValue!;
+                  _fetchStatsData(index: 0, isSessionData: true);
+                });
+              },
+            ),
+            _buildDropdown<bool>(
+              value: _searchStructure,
+              items: const [
+                DropdownMenuItem(
+                    value: true,
+                    child: Text('First/Second Structure',
+                        style: TextStyle(fontSize: 14))),
+                DropdownMenuItem(
+                    value: false,
+                    child: Text('Bastion/Fortress',
+                        style: TextStyle(fontSize: 14))),
+              ],
+              onChanged: (bool? newValue) {
+                setState(() {
+                  _searchStructure = newValue!;
+                  _fetchStatsData(index: 0, isSessionData: true);
+                });
+              },
+            ),
           ],
-          onChanged: (String? newValue) {
-            setState(() {
-              _searchDays = newValue!;
-              _fetchStatsData(index: 0, isSessionData: true);
-            });
-          },
-        ),
-        _buildDropdown<bool>(
-          value: _searchStructure,
-          items: const [
-            DropdownMenuItem(
-                value: true,
-                child: Text('First/Second Structure',
-                    style: TextStyle(fontSize: 14))),
-            DropdownMenuItem(
-                value: false,
-                child:
-                    Text('Bastion/Fortress', style: TextStyle(fontSize: 14))),
-          ],
-          onChanged: (bool? newValue) {
-            setState(() {
-              _searchStructure = newValue!;
-              _fetchStatsData(index: 0, isSessionData: true);
-            });
-          },
         ),
       ],
     );
@@ -844,8 +884,10 @@ class MainState extends State<Main> {
         final int mainValue = statsItem['value'].floor();
         final int qtyValue = statsItem['qty'];
         final int avgValue = statsItem['avg'].floor();
-        final formattedmainTime = formatTime(mainValue, includeDecimal: true);
-        final formattedTime = formatTime(avgValue, includeDecimal: true);
+
+        // formattedmainTime と formattedTime を取得し、ゼロを取り除く
+        final formattedmainTime = _formatTimeWithoutLeadingZero(mainValue);
+        final formattedTime = _formatTimeWithoutLeadingZero(avgValue);
 
         final String selectedType = _selectedType;
 
