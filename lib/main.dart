@@ -552,7 +552,7 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
               items: const [
                 DropdownMenuItem(
                     value: 'Avg',
-                    child: Text('Avg', style: TextStyle(fontSize: 14))),
+                    child: Text('Average', style: TextStyle(fontSize: 14))),
                 DropdownMenuItem(
                     value: 'CVR',
                     child: Text('CVR', style: TextStyle(fontSize: 14))),
