@@ -45,7 +45,7 @@ WRペースを通知する**Android**アプリです。
 ## スクリーンショット
 <img src="https://github.com/user-attachments/assets/cf289896-4ccc-40bb-8574-632c6db0c001" width="25%" />
 <img src="https://github.com/user-attachments/assets/1871d25f-09c5-439c-917b-adb0f98ef1a2" width="25%" />
-<img src="https://github.com/user-attachments/assets/149f03fb-8f2c-4cfb-bad6-d229183fbe47" width="25%" />
+<img src="https://github.com/user-attachments/assets/759d6d4c-7645-48e0-9dfb-ef1c159ff837" width="25%" />
 
 ## 開発環境
 - Android 11.0 (API 30)
