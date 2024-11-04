@@ -11,6 +11,7 @@ WRペースを通知する**Android**アプリです。
 起動後はアプリが常駐されます。これにより、いつでも通知を受け取ることができます。
 
 ## 通知対象
+以下に一致する場合、音ありで通知されます。
 - sub 5 Stronghold
 - sub 6:11 Enter End
 - sub 7:01.494 Finish (sub drip)
@@ -35,14 +36,14 @@ WRペースを通知する**Android**アプリです。
 ## 備考
 - アプリのライト/ダークモードは、システムのモードに依存します
 - 20秒に一度、PaceMan APIから情報を取得します
-- 通知音は手動で停止しない場合、30秒後に自動停止されます
+- 通知音は手動で停止しない場合、1分後に自動停止されます
 - アプリ内から新バージョンをダウンロードする場合、ブラウザのダウンロード設定によっては、ダウンロードされないことがあります
 
 ## クレジット
 - アイデア：[まさ](https://x.com/masa_ERC/status/1846322439976112189)
 
 ## スクリーンショット
-<img src="https://github.com/user-attachments/assets/4dc36847-8547-4c49-af34-ee71fbb9c253" width="25%" />
+<img src="https://github.com/user-attachments/assets/cf289896-4ccc-40bb-8574-632c6db0c001" width="25%" />
 <img src="https://github.com/user-attachments/assets/1871d25f-09c5-439c-917b-adb0f98ef1a2" width="25%" />
 <img src="https://github.com/user-attachments/assets/149f03fb-8f2c-4cfb-bad6-d229183fbe47" width="25%" />
 
