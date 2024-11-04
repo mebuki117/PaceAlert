@@ -62,7 +62,7 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
 
   String _searchDays = '720';
   bool _searchStructure = true;
-  bool _searchConversion = true;
+  String _searchAvgCV = 'Avg';
 
   late TabController _tabController;
 
@@ -548,6 +548,26 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _buildDropdown<String>(
+              value: _searchAvgCV,
+              items: const [
+                DropdownMenuItem(
+                    value: 'Avg',
+                    child: Text('Avg', style: TextStyle(fontSize: 14))),
+                DropdownMenuItem(
+                    value: 'CVR',
+                    child: Text('CVR', style: TextStyle(fontSize: 14))),
+                DropdownMenuItem(
+                    value: 'CCR',
+                    child: Text('CCR', style: TextStyle(fontSize: 14))),
+              ],
+              onChanged: (String? newValue) {
+                setState(() {
+                  _searchAvgCV = newValue!;
+                  _fetchStatsData(index: 0, isSessionData: true);
+                });
+              },
+            ),
+            _buildDropdown<String>(
               value: _searchDays,
               items: const [
                 DropdownMenuItem(
@@ -594,23 +614,6 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
               onChanged: (bool? newValue) {
                 setState(() {
                   _searchStructure = newValue!;
-                  _fetchStatsData(index: 0, isSessionData: true);
-                });
-              },
-            ),
-            _buildDropdown<bool>(
-              value: _searchConversion,
-              items: const [
-                DropdownMenuItem(
-                    value: true,
-                    child: Text('CVR', style: TextStyle(fontSize: 14))),
-                DropdownMenuItem(
-                    value: false,
-                    child: Text('CCR', style: TextStyle(fontSize: 14))),
-              ],
-              onChanged: (bool? newValue) {
-                setState(() {
-                  _searchConversion = newValue!;
                   _fetchStatsData(index: 0, isSessionData: true);
                 });
               },
@@ -1049,14 +1052,24 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
           firstCount = currentCount;
           conversionRate = 100;
         } else {
-          final denominator = _searchConversion ? previousCount : firstCount;
+          final denominator =
+              _searchAvgCV == 'CVR' ? previousCount : firstCount;
           conversionRate = denominator != null && denominator > 0
               ? (currentCount / denominator * 100).toDouble()
               : 0;
         }
 
-        final conversionText =
-            index == 0 ? 'N/A' : '${conversionRate.toStringAsFixed(1)}%';
+        final String displayValue;
+        if (_searchAvgCV == 'Avg') {
+          displayValue = statData['avg'];
+        } else if (_searchAvgCV == 'CVR' || _searchAvgCV == 'CCR') {
+          displayValue = (firstCount == currentCount)
+              ? 'N/A'
+              : '${conversionRate.toStringAsFixed(1)}%';
+        } else {
+          displayValue = 'N/A';
+        }
+
         previousCount = currentCount;
 
         return Card(
@@ -1085,15 +1098,11 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'Quantity: $currentCount',
+                      '$currentCount',
                       style: const TextStyle(fontSize: 12),
                     ),
                     Text(
-                      'Average: ${statData['avg']}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    Text(
-                      'Conversion: $conversionText',
+                      displayValue,
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
