@@ -60,9 +60,9 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
 
   final TextEditingController _searchController = TextEditingController();
 
-  bool _isSearchMode = false;
   String _searchDays = '720';
   bool _searchStructure = true;
+  bool _searchConversion = true;
 
   late TabController _tabController;
 
@@ -179,17 +179,13 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
   }
 
   String _formatTimeWithoutLeadingZero(int value) {
-    // フォーマットされた時間を取得
     String formatted = formatTime(value, includeDecimal: true);
 
-    // 時間部分のゼロを取り除く
     final parts = formatted.split(':');
-    final hours = parts[0].startsWith('0')
-        ? parts[0].substring(1)
-        : parts[0]; // 頭のゼロを取り除く
+    final hours = parts[0].startsWith('0') ? parts[0].substring(1) : parts[0];
     final minutes = parts[1];
 
-    return '$hours:$minutes'; // フォーマットされた時間を返す
+    return '$hours:$minutes';
   }
 
   @override
@@ -234,10 +230,10 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
     'Nether',
     'Structure 1',
     'Structure 2',
-    'First Portals',
+    'First Portal',
     'Stronghold',
     'End',
-    'Completion',
+    'Finish',
   ];
 
   final List<String> _tabImages = [
@@ -251,14 +247,14 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
   ];
 
   final Map<String, String> _statKeyDisplayNames = {
-    'nether': 'Nether Enters',
+    'nether': 'Nether',
     'bastion': 'Bastion',
     'fortress': 'Fortress',
     'first_structure': 'First Structure',
     'second_structure': 'Second Structure',
     'first_portal': 'First Portal',
     'stronghold': 'Stronghold',
-    'end': 'End Enter',
+    'end': 'End',
     'finish': 'Finish',
   };
 
@@ -338,7 +334,7 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
     return Scaffold(
       appBar: _selectedIndex == 0
           ? AppBar(
-              toolbarHeight: kToolbarHeight - 56, // デフォルト高さより縮小
+              toolbarHeight: kToolbarHeight - 56,
               bottom: TabBar(
                 controller: _tabController,
                 tabs: const [
@@ -358,14 +354,12 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      // Leaderboardタブの内容
                       Column(
                         children: [
                           _buildDropdowns(),
                           Expanded(child: _buildStatsView()),
                         ],
                       ),
-                      // Searchタブの内容
                       Column(
                         children: [
                           Padding(
@@ -373,9 +367,9 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
                             child: Row(
                               children: [
                                 Opacity(
-                                  opacity: 0.0, // 完全に透明
+                                  opacity: 0.0,
                                   child: IconButton(
-                                    icon: const Icon(Icons.search), // 任意のアイコン
+                                    icon: const Icon(Icons.search),
                                     onPressed: () {},
                                   ),
                                 ),
@@ -393,7 +387,6 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
                                     setState(() {
                                       _fetchStatsData(
                                           index: 0, isSessionData: true);
-                                      _isSearchMode = true;
                                     });
                                   },
                                 ),
@@ -446,7 +439,7 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
   Widget _buildDropdowns() {
     return Column(
       children: [
-        const SizedBox(height: 16), // 上部の間隔を追加
+        const SizedBox(height: 16),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -605,6 +598,23 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
                 });
               },
             ),
+            _buildDropdown<bool>(
+              value: _searchConversion,
+              items: const [
+                DropdownMenuItem(
+                    value: true,
+                    child: Text('CVR', style: TextStyle(fontSize: 14))),
+                DropdownMenuItem(
+                    value: false,
+                    child: Text('CCR', style: TextStyle(fontSize: 14))),
+              ],
+              onChanged: (bool? newValue) {
+                setState(() {
+                  _searchConversion = newValue!;
+                  _fetchStatsData(index: 0, isSessionData: true);
+                });
+              },
+            ),
           ],
         ),
       ],
@@ -753,6 +763,7 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
                                         vertical: 8, horizontal: 16),
                                     elevation: 4,
                                     child: ListTile(
+                                      dense: true,
                                       contentPadding: const EdgeInsets.all(16),
                                       leading: highestEvent != null
                                           ? Image.asset(
@@ -773,13 +784,13 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
                                                 item['nickname'] ?? 'No Name',
                                                 style: const TextStyle(
                                                   color: Colors.blue,
-                                                  decoration:
-                                                      TextDecoration.underline,
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
                                             )
-                                          : Text(item['nickname'] ?? 'No Name'),
+                                          : Text(item['nickname'] ?? 'No Name',
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold)),
                                       subtitle: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
@@ -790,6 +801,7 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
                                                   highestEvent)[0],
                                               style: const TextStyle(
                                                 color: Colors.grey,
+                                                fontSize: 12,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
@@ -802,6 +814,7 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
                                                   formatTime(highestIgt!),
                                                   style: const TextStyle(
                                                     color: Colors.grey,
+                                                    fontSize: 12,
                                                     fontStyle: FontStyle.italic,
                                                   ),
                                                 ),
@@ -824,6 +837,7 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
                                                             .toString(),
                                                         style: const TextStyle(
                                                           color: Colors.grey,
+                                                          fontSize: 12,
                                                         ),
                                                       ),
                                                     ],
@@ -843,6 +857,7 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
                                                             .toString(),
                                                         style: const TextStyle(
                                                           color: Colors.grey,
+                                                          fontSize: 12,
                                                         ),
                                                       ),
                                                     ],
@@ -885,7 +900,6 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
         final int qtyValue = statsItem['qty'];
         final int avgValue = statsItem['avg'].floor();
 
-        // formattedmainTime と formattedTime を取得し、ゼロを取り除く
         final formattedmainTime = _formatTimeWithoutLeadingZero(mainValue);
         final formattedTime = _formatTimeWithoutLeadingZero(avgValue);
 
@@ -976,6 +990,9 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
       );
     }
 
+    int? firstCount;
+    int? previousCount;
+
     return ListView.builder(
       itemCount: _userstatsdata.keys.length,
       itemBuilder: (context, index) {
@@ -1025,6 +1042,23 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
             imageIndex = -1;
         }
 
+        final currentCount = statData['count'];
+        double conversionRate;
+
+        if (firstCount == null) {
+          firstCount = currentCount;
+          conversionRate = 100;
+        } else {
+          final denominator = _searchConversion ? previousCount : firstCount;
+          conversionRate = denominator != null && denominator > 0
+              ? (currentCount / denominator * 100).toDouble()
+              : 0;
+        }
+
+        final conversionText =
+            index == 0 ? 'N/A' : '${conversionRate.toStringAsFixed(1)}%';
+        previousCount = currentCount;
+
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           elevation: 4,
@@ -1051,12 +1085,16 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'Quantity: ${statData['count']}',
+                      'Quantity: $currentCount',
                       style: const TextStyle(fontSize: 12),
                     ),
                     Text(
                       'Average: ${statData['avg']}',
                       style: const TextStyle(fontSize: 12),
+                    ),
+                    Text(
+                      'Conversion: $conversionText',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),

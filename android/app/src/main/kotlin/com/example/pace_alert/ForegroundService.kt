@@ -31,7 +31,7 @@ class ForegroundService : Service() {
     private val sentNotificationIds = mutableSetOf<Int>()
     private val handler = Handler()
     private var ringtone: Ringtone? = null
-    private val stopDelay: Long = 300000
+    private val stopDelay: Long = 600000
     private val client = OkHttpClient()
     private var job: Job? = null
     
