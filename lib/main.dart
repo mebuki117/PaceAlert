@@ -604,12 +604,10 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
               items: const [
                 DropdownMenuItem(
                     value: true,
-                    child: Text('First/Second Structure',
-                        style: TextStyle(fontSize: 14))),
+                    child: Text('F/S Struct', style: TextStyle(fontSize: 14))),
                 DropdownMenuItem(
                     value: false,
-                    child: Text('Bastion/Fortress',
-                        style: TextStyle(fontSize: 14))),
+                    child: Text('Bas/Fort', style: TextStyle(fontSize: 14))),
               ],
               onChanged: (bool? newValue) {
                 setState(() {
