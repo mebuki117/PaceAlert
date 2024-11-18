@@ -50,7 +50,7 @@ class ForegroundService : Service() {
         "rsg.enter_bastion" to 0,
         "rsg.enter_fortress" to 0,
         "rsg.first_portal" to 0,
-        "rsg.enter_stronghold" to 300000,
+        "rsg.enter_stronghold" to 330000,
         "rsg.enter_end" to 371000,
         "rsg.credits" to 421494
     )

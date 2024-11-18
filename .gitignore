@@ -50,4 +50,5 @@ app.*.map.json
 /windows
 
 # other
+build.txt
 todo.txt
