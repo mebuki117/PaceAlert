@@ -1,5 +1,5 @@
 ## 説明
-WRペースを通知する**Android**アプリです。  
+RSG Any%のWRペースを通知する**Android**アプリです。  
 加えて、現在のペースを[PaceMan](https://paceman.gg/)風に表示します。
 
 ## 使い方
@@ -12,7 +12,7 @@ WRペースを通知する**Android**アプリです。
 
 ## 通知対象
 以下に一致する場合、音ありで通知されます。
-- sub 5 Stronghold
+- sub 5:30 Stronghold
 - sub 6:11 Enter End
 - sub 7:01.494 Finish (sub drip)
 
