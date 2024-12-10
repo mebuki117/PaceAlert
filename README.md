@@ -1,17 +1,26 @@
-## 説明
+## 説明 (Explanation)
 RSG Any%のWRペースを通知する**Android**アプリです。  
-加えて、現在のペースを[PaceMan](https://paceman.gg/)風に表示します。
+An Android application that notifies the WR pace of RSG Any%.  
 
-## 使い方
-1. [最新のリリース](https://github.com/mebuki117/PaceAlert/releases/latest)から、`pace-alert_vx.x.x.apk`をスマホでダウンロード
-2. ダウンロードしたファイルを開いて、アプリをインストール
-3. システムの設定を開き、アプリの通知をオンにする（Android 14では、オフがデフォルトのようです）
-4. アプリを起動
+加えて、現在のペースを[PaceMan](https://paceman.gg/)風に表示します。  
+and, the current pace is displayed in a [PaceMan](https://paceman.gg/) style.
 
-起動後はアプリが常駐されます。これにより、いつでも通知を受け取ることができます。
+## 使い方 (How to use)
+1. [最新のリリース](https://github.com/mebuki117/PaceAlert/releases/latest)から、`pace-alert_vx.x.x.apk`をスマホでダウンロード  
+   From the [latest release](https://github.com/mebuki117/PaceAlert/releases/latest), download `pace-alert_vx.x.x.apk` with your phone
+2. ダウンロードしたファイルを開いて、アプリをインストール  
+   Open the downloaded file and install the app
+3. システムの設定を開き、アプリの通知をオンにする（Android 14では、オフがデフォルトのようです）  
+   Open the system settings and turn on the app notification
+4. アプリを起動  
+   Start the app
 
-## 通知対象
-以下に一致する場合、音ありで通知されます。
+起動後はアプリが常駐されます。これにより、いつでも通知を受け取ることができます。  
+After startup, the app will be resident. This allows you to receive notifications at any time.
+ 
+## 通知対象 (Notification Pace)
+以下に一致する場合、音ありで通知されます。  
+If you match the following, you will be notified with a sound.  
 - sub 5:30 Stronghold
 - sub 6:11 Enter End
 - sub 7:01.494 Finish (sub drip)
@@ -39,10 +48,10 @@ RSG Any%のWRペースを通知する**Android**アプリです。
 - 通知音は手動で停止しない場合、1分後に自動停止されます
 - アプリ内から新バージョンをダウンロードする場合、ブラウザのダウンロード設定によっては、ダウンロードされないことがあります
 
-## クレジット
-- アイデア：[まさ](https://x.com/masa_ERC/status/1846322439976112189)
+## クレジット (Credit)
+- アイデア (Idea)：[まさ (masa)](https://x.com/masa_ERC/status/1846322439976112189)
 
-## スクリーンショット
+## スクリーンショット (Screenshots)
 <img src="https://github.com/user-attachments/assets/cf289896-4ccc-40bb-8574-632c6db0c001" width="25%" />
 <img src="https://github.com/user-attachments/assets/1871d25f-09c5-439c-917b-adb0f98ef1a2" width="25%" />
 <img src="https://github.com/user-attachments/assets/759d6d4c-7645-48e0-9dfb-ef1c159ff837" width="25%" />
