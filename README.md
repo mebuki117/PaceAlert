@@ -1,6 +1,6 @@
 ## 説明 (Explanation)
 RSG Any%のWRペースを通知する**Android**アプリです。  
-An Android application that notifies the WR pace of RSG Any%.  
+An **Android** application that notifies the WR pace of RSG Any%.  
 
 加えて、現在のペースを[PaceMan](https://paceman.gg/)風に表示します。  
 and, the current pace is displayed in a [PaceMan](https://paceman.gg/) style.
