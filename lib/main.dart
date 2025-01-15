@@ -6,6 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:developer';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -47,7 +48,6 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
   FlutterLocalNotificationsPlugin? flutterLocalNotificationsPlugin;
   Map<String, Set<String>> notifiedEventIds = {};
   Set<int> sentNotificationIds = {};
-  bool _isLiveOnly = false;
 
   int _selectedIndex = 1;
   int _selectedTabIndex = 0;
@@ -66,6 +66,10 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
 
   late TabController _tabController;
 
+  List<String> usernames = [];
+  final TextEditingController usernameController = TextEditingController();
+  String _filterOption = 'No Filter';
+
   @override
   void initState() {
     super.initState();
@@ -77,6 +81,7 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
     });
     _checkForUpdate();
     _tabController = TabController(length: 2, vsync: this);
+    _loadUsernames();
   }
 
   bool _isNewerVersion(String current, String latest) {
@@ -329,6 +334,34 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
     }
   }
 
+  void _addUsername() async {
+    final username = usernameController.text;
+    if (username.isNotEmpty && !usernames.contains(username)) {
+      setState(() {
+        usernames.add(username);
+      });
+      usernameController.clear();
+      _saveUsernames();
+    } else if (usernames.contains(username)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This username is already added.')),
+      );
+    }
+  }
+
+  void _saveUsernames() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('usernames', usernames);
+  }
+
+  void _loadUsernames() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      usernames = prefs.getStringList('usernames') ?? [];
+      usernames.sort();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -343,7 +376,18 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
                 ],
               ),
             )
-          : null,
+          : _selectedIndex == 2
+              ? AppBar(
+                  toolbarHeight: kToolbarHeight - 56,
+                  bottom: TabBar(
+                    controller: _tabController,
+                    tabs: const [
+                      Tab(text: 'General'),
+                      Tab(text: 'User Filter'),
+                    ],
+                  ),
+                )
+              : null,
       body: SafeArea(
         child: DefaultTabController(
           length: _tabs.length,
@@ -397,6 +441,16 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
                           Expanded(child: _buildSearchStatsView()),
                         ],
                       ),
+                    ],
+                  ),
+                ),
+              ] else if (_selectedIndex == 2) ...[
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildSettingsView(),
+                      _buildFilterView(),
                     ],
                   ),
                 ),
@@ -665,14 +719,20 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
             Expanded(
               child: Column(
                 children: <Widget>[
-                  SwitchListTile(
-                    title: const Text('Live Only'),
-                    value: _isLiveOnly,
-                    onChanged: (bool value) {
+                  DropdownButton<String>(
+                    value: _filterOption,
+                    onChanged: (String? newValue) {
                       setState(() {
-                        _isLiveOnly = value;
+                        _filterOption = newValue!;
                       });
                     },
+                    items: <String>['No Filter', 'Live Only', 'User Filter']
+                        .map<DropdownMenuItem<String>>((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
                   ),
                   Expanded(
                     child: _data.isEmpty
@@ -685,9 +745,20 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
                                 final liveAccount = item['user']['liveAccount'];
                                 final isHidden = item['isHidden'] ?? false;
                                 final isCheated = item['isCheated'] ?? false;
-                                return (!_isLiveOnly || liveAccount != null) &&
-                                    !isHidden &&
-                                    !isCheated;
+
+                                if (_filterOption == 'No Filter') {
+                                  return !isHidden && !isCheated;
+                                } else if (_filterOption == 'Live Only') {
+                                  return liveAccount != null &&
+                                      !isHidden &&
+                                      !isCheated;
+                                } else if (_filterOption == 'User Filter') {
+                                  final nickname = item['nickname'];
+                                  return usernames.contains(nickname) &&
+                                      !isHidden &&
+                                      !isCheated;
+                                }
+                                return false;
                               }).toList();
 
                               if (filteredData.isEmpty) {
@@ -1123,6 +1194,62 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
           ),
           Text(
             'v$currentVersion',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: usernameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Enter username...',
+                      border: OutlineInputBorder(),
+                    ),
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: _addUsername,
+                  child: const Text('Add'),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: usernames.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(
+                      style: const TextStyle(fontSize: 14), usernames[index]),
+                  trailing: IconButton(
+                    icon: const Icon(
+                      Icons.delete,
+                      color: Colors.red,
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        usernames.removeAt(index);
+                      });
+                      _saveUsernames();
+                    },
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),
