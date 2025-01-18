@@ -62,13 +62,13 @@ class MainState extends State<Main> with TickerProviderStateMixin {
 
   final TextEditingController _searchController = TextEditingController();
 
+  String _searchAvgCV = 'Avg';
   String _searchDays = '720';
   bool _searchStructure = true;
-  String _searchAvgCV = 'Avg';
 
   List<String> usernames = [];
   final TextEditingController usernameController = TextEditingController();
-  String _filterOption = 'No Filter';
+  String _filterType = 'No Filter';
 
   @override
   void initState() {
@@ -726,10 +726,10 @@ class MainState extends State<Main> with TickerProviderStateMixin {
               child: Column(
                 children: <Widget>[
                   DropdownButton<String>(
-                    value: _filterOption,
+                    value: _filterType,
                     onChanged: (String? newValue) {
                       setState(() {
-                        _filterOption = newValue!;
+                        _filterType = newValue!;
                       });
                     },
                     items: <String>['No Filter', 'Live Only', 'User Filter']
@@ -752,13 +752,13 @@ class MainState extends State<Main> with TickerProviderStateMixin {
                                 final isHidden = item['isHidden'] ?? false;
                                 final isCheated = item['isCheated'] ?? false;
 
-                                if (_filterOption == 'No Filter') {
+                                if (_filterType == 'No Filter') {
                                   return !isHidden && !isCheated;
-                                } else if (_filterOption == 'Live Only') {
+                                } else if (_filterType == 'Live Only') {
                                   return liveAccount != null &&
                                       !isHidden &&
                                       !isCheated;
-                                } else if (_filterOption == 'User Filter') {
+                                } else if (_filterType == 'User Filter') {
                                   final nickname = item['nickname'];
                                   return usernames.contains(nickname) &&
                                       !isHidden &&
