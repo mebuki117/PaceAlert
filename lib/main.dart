@@ -371,7 +371,7 @@ class MainState extends State<Main> with TickerProviderStateMixin {
           ? AppBar(
               toolbarHeight: kToolbarHeight - 56,
               bottom: TabBar(
-                controller: _statsTabController, // Stats 用のコントローラー
+                controller: _statsTabController,
                 tabs: const [
                   Tab(text: 'Leaderboard'),
                   Tab(text: 'Search'),
@@ -382,7 +382,7 @@ class MainState extends State<Main> with TickerProviderStateMixin {
               ? AppBar(
                   toolbarHeight: kToolbarHeight - 56,
                   bottom: TabBar(
-                    controller: _settingsTabController, // Settings 用のコントローラー
+                    controller: _settingsTabController,
                     tabs: const [
                       Tab(text: 'General'),
                       Tab(text: 'User Filter'),
@@ -400,7 +400,7 @@ class MainState extends State<Main> with TickerProviderStateMixin {
                 children: [
                   Expanded(
                     child: TabBarView(
-                      controller: _statsTabController, // Stats 用のコントローラー
+                      controller: _statsTabController,
                       children: [
                         Column(
                           children: [
@@ -458,7 +458,7 @@ class MainState extends State<Main> with TickerProviderStateMixin {
                 children: [
                   Expanded(
                     child: TabBarView(
-                      controller: _settingsTabController, // Settings 用のコントローラー
+                      controller: _settingsTabController,
                       children: [
                         _buildSettingsView(),
                         _buildFilterView(),
