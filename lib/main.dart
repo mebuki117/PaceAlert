@@ -32,19 +32,21 @@ class Main extends StatefulWidget {
   MainState createState() => MainState();
 }
 
-class MainState extends State<Main> with SingleTickerProviderStateMixin {
+class MainState extends State<Main> with TickerProviderStateMixin {
   static const platform = MethodChannel('com.example.pace_alert/service');
 
   final String currentVersion = '1.5.3';
   Map<String, String>? _updateInfo;
   bool _isUpdateChecked = false;
 
+  late TabController _statsTabController;
+  late TabController _settingsTabController;
+
   List<dynamic> _data = [];
   List<dynamic> _statsdata = [];
   Map<String, dynamic> _userstatsdata = {};
 
   Timer? _timer;
-
   FlutterLocalNotificationsPlugin? flutterLocalNotificationsPlugin;
   Map<String, Set<String>> notifiedEventIds = {};
   Set<int> sentNotificationIds = {};
@@ -64,8 +66,6 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
   bool _searchStructure = true;
   String _searchAvgCV = 'Avg';
 
-  late TabController _tabController;
-
   List<String> usernames = [];
   final TextEditingController usernameController = TextEditingController();
   String _filterOption = 'No Filter';
@@ -80,7 +80,8 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
       fetchData();
     });
     _checkForUpdate();
-    _tabController = TabController(length: 2, vsync: this);
+    _statsTabController = TabController(length: 2, vsync: this);
+    _settingsTabController = TabController(length: 2, vsync: this);
     _loadUsernames();
   }
 
@@ -196,7 +197,8 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
   @override
   void dispose() {
     _timer?.cancel();
-    _tabController.dispose();
+    _statsTabController.dispose();
+    _settingsTabController.dispose();
     super.dispose();
   }
 
@@ -369,7 +371,7 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
           ? AppBar(
               toolbarHeight: kToolbarHeight - 56,
               bottom: TabBar(
-                controller: _tabController,
+                controller: _statsTabController, // Stats 用のコントローラー
                 tabs: const [
                   Tab(text: 'Leaderboard'),
                   Tab(text: 'Search'),
@@ -380,7 +382,7 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
               ? AppBar(
                   toolbarHeight: kToolbarHeight - 56,
                   bottom: TabBar(
-                    controller: _tabController,
+                    controller: _settingsTabController, // Settings 用のコントローラー
                     tabs: const [
                       Tab(text: 'General'),
                       Tab(text: 'User Filter'),
@@ -389,80 +391,84 @@ class MainState extends State<Main> with SingleTickerProviderStateMixin {
                 )
               : null,
       body: SafeArea(
-        child: DefaultTabController(
-          length: _tabs.length,
-          child: Column(
-            children: [
-              if (_selectedIndex == 0) ...[
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      Column(
-                        children: [
-                          _buildDropdowns(),
-                          Expanded(child: _buildStatsView()),
-                        ],
-                      ),
-                      Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Row(
-                              children: [
-                                Opacity(
-                                  opacity: 0.0,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.search),
-                                    onPressed: () {},
-                                  ),
-                                ),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _searchController,
-                                    decoration: const InputDecoration(
-                                      hintText: 'Search...',
+        child: IndexedStack(
+          index: _selectedIndex,
+          children: [
+            DefaultTabController(
+              length: 2,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: TabBarView(
+                      controller: _statsTabController, // Stats 用のコントローラー
+                      children: [
+                        Column(
+                          children: [
+                            _buildDropdowns(),
+                            Expanded(child: _buildStatsView()),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Row(
+                                children: [
+                                  Opacity(
+                                    opacity: 0.0,
+                                    child: IconButton(
+                                      icon: const Icon(Icons.search),
+                                      onPressed: () {},
                                     ),
                                   ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.search),
-                                  onPressed: () {
-                                    setState(() {
-                                      _fetchStatsData(
-                                          index: 0, isSessionData: true);
-                                    });
-                                  },
-                                ),
-                              ],
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _searchController,
+                                      decoration: const InputDecoration(
+                                        hintText: 'Search...',
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.search),
+                                    onPressed: () {
+                                      setState(() {
+                                        _fetchStatsData(
+                                            index: 0, isSessionData: true);
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          _buildSearchDropdowns(),
-                          Expanded(child: _buildSearchStatsView()),
-                        ],
-                      ),
-                    ],
+                            _buildSearchDropdowns(),
+                            Expanded(child: _buildSearchStatsView()),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ] else if (_selectedIndex == 2) ...[
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildSettingsView(),
-                      _buildFilterView(),
-                    ],
+                ],
+              ),
+            ),
+            _buildCurrentPaceView(),
+            DefaultTabController(
+              length: 2,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: TabBarView(
+                      controller: _settingsTabController, // Settings 用のコントローラー
+                      children: [
+                        _buildSettingsView(),
+                        _buildFilterView(),
+                      ],
+                    ),
                   ),
-                ),
-              ] else ...[
-                Expanded(
-                  child: _selectedIndex == 1
-                      ? _buildCurrentPaceView()
-                      : _buildSettingsView(),
-                ),
-              ],
-            ],
-          ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
