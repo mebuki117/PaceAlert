@@ -21,9 +21,9 @@ After startup, the app will be resident. This allows you to receive notification
 ## 通知対象 (Notification Pace)
 以下に一致する場合、音ありで通知されます。  
 If you match the following, you will be notified with a sound.  
-- sub 5:30 Stronghold
-- sub 6:11 Enter End
-- sub 7:01.494 Finish (sub drip)
+- sub 5:20 Stronghold
+- sub 5:55 Enter End
+- sub 6:50.359 Finish (sub lowkey)
 
 ## 機能
 ### Current Pace
