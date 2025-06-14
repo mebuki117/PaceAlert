@@ -35,7 +35,7 @@ class Main extends StatefulWidget {
 class MainState extends State<Main> with TickerProviderStateMixin {
   static const platform = MethodChannel('com.example.pace_alert/service');
 
-  final String currentVersion = '1.6.0';
+  final String currentVersion = '1.6.1';
   Map<String, String>? _updateInfo;
   bool _isUpdateChecked = false;
 
